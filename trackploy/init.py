@@ -6,6 +6,13 @@ import paramiko
 
 class SSHParamiko:
     def __init__(self, host, user):
+        """
+        Class wrapping the paramiko SSHClient object.
+
+        Parameters:
+            host(str): The target host.
+            user(str): The deploying user.
+        """
         ssh = paramiko.SSHClient()
         ssh.load_system_host_keys()
         try:
@@ -18,6 +25,12 @@ class SSHParamiko:
         self.ssh = ssh
 
     def is_path(self, path):
+        """
+        Checks if path exists on remote host.
+
+        Parameters:
+            path(str): Path to check.
+        """
         try:
             self.sftp.stat(path)
             return True
@@ -25,6 +38,13 @@ class SSHParamiko:
             return False
 
     def exec(self, cmd, dir=None):
+        """
+        Execute shell command on remote host.
+
+        Parameters:
+            cmd(str): Command to execute.
+            dir(str): Directory in which to run (optional).
+        """
         if dir:
             cmd = f"cd {dir}; {cmd}"
         stdin, stdout, stderr = self.ssh.exec_command(cmd)
@@ -36,6 +56,20 @@ class SSHParamiko:
 
 
 def setup_remote(host, user, target_dir, remote=None, push_options=None):
+    """
+    Setup target and remote repositories.
+    Steps:
+        - SSH to host, creates the git repository on target_dir
+        - Create first dummy commit
+        - (optional) git push to remote backup repository
+
+    Parameters:
+        host(str): The target host.
+        user(str): The deploying user.
+        target_dir(str): The target git repository.
+        remote(str): The remote backup git repository (optional).
+        push_options(str): git push options ('typically --force').
+    """
     print(f"Creating remote repository {target_dir} on host {host} with user {user}")
     ssh = SSHParamiko(host, user)
     ssh.exec(f"mkdir -p {target_dir}")

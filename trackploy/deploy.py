@@ -16,6 +16,17 @@ class GitDeployment:
         target_repo=None,
         backup_repo=None,
     ):
+        """
+        Class used to deploy suites through git.
+
+        Parameters:
+            host(str): The target host.
+            user(str): The deploying user.
+            suite_dir(str): The source suite directory.
+            local_repo(str): Path to the local repository.
+            target_repo(str): Path to the target repository on the target host.
+            backup_repo(str): URL of the backup repository.
+        """
 
         print("Creating deployer:")
         deploy_user = os.getenv("USER")
@@ -47,9 +58,25 @@ class GitDeployment:
             self.check_sync_remotes("origin", "backup")
 
     def get_hash_remote(self, remote):
+        """
+        Get the git hash of a remote repository on the master branch.
+
+        Parameters:
+            remote(str): Name of the remote repository (typically "origin").
+
+        Returns:
+            The git hash of the master branch.
+        """
         return self.repo.git.ls_remote("--heads", remote, "master").split("\t")[0]
 
     def check_sync_local_remote(self, remote):
+        """
+        Check that the local repository git hash is the same as the remote.
+        Raise exception if the git hashes don't match.
+
+        Parameters:
+            remote(str): Name of the remote repository (typically "origin").
+        """
         remote_repo = self.repo.remotes[remote]
         remote_repo.fetch()
         hash_target = self.get_hash_remote(remote)
@@ -62,6 +89,14 @@ class GitDeployment:
             )
 
     def check_sync_remotes(self, remote1, remote2):
+        """
+        Check that two remote repositories have the same git hash.
+        Raise exception if the git hashes don't match.
+
+        Parameters:
+            remote1(str): Name of the first remote repository (typically "origin").
+            remote2(str): Name of the second remote repository (typically "backup").
+        """
         remote_repo1 = self.repo.remotes[remote1]
         remote_repo2 = self.repo.remotes[remote2]
         remote_repo1.fetch()
@@ -75,7 +110,16 @@ class GitDeployment:
                 f"Remote git repositories ({remote1} and {remote2}) not in sync!"
             )
 
-    def commit(self, message):
+    def commit(self, message=None):
+        """
+        Commits the current stage of the local repository.
+        Throws exception if there is nothing to commit.
+        Default commit message will be:
+            "deployed by {user} from {host}:{suite_dir}"
+
+        Parameters:
+            message(str): optional git commit message to append to default message
+        """
         try:
             commit_message = (
                 f"deployed by {self.user} from {self.host}:{self.suite_dir}\n"
@@ -93,6 +137,12 @@ class GitDeployment:
             raise e
 
     def push(self, remote):
+        """
+        Pushes the local state to the remote repository
+
+        Parameters:
+            remote(str): Name of the remote repository (typically "origin").
+        """
         remote_repo = self.repo.remotes[remote]
         try:
             remote_repo.push().raise_if_error()
@@ -102,11 +152,20 @@ class GitDeployment:
                 + "Check configuration and states of remote repository!"
             )
 
-    def pull_target(self, remote):
+    def pull_remote(self, remote):
+        """
+        Git pull the remote repository to the local repository
+
+        Parameters:
+            remote(str): Name of the remote repository (typically "origin").
+        """
         remote_repo = self.repo.remotes[remote]
         remote_repo.pull()
 
     def diff_staging(self):
+        """
+        Prints the difference between the staged suite and the current suite
+        """
         modified = []
         removed = []
         added = []
@@ -156,7 +215,20 @@ class GitDeployment:
                 for path in files:
                     print(f"        - {path}")
 
-    def deploy(self, message):
+    def deploy(self, message=None):
+        """
+        Deploy the staged suite to the target repository.
+        Steps:
+            - git fetch remote repositories and check they are in sync
+            - rsync the staged folder to the local repository
+            - git add all the suite files and commit
+            - git push to remotes
+        Default commit message will be:
+            "deployed by {user} from {host}:{suite_dir}"
+
+        Parameters:
+            message(str): optional git commit message to append to default message.
+        """
         print("Deploying suite to remote locations:")
         # check if repos are in sync
         print("    -> Checking that git repos are in sync")
@@ -167,10 +239,10 @@ class GitDeployment:
 
         # rsync staging folder to current repo
         print("    -> Staging suite")
-        # TO DO: check if rsync fails
+        # TODO: check if rsync fails
         cmd = f"rsync -avz --delete {self.suite_dir}/ {self.local_dir}/ --exclude .git"
         run_cmd(cmd)
-        # POSSIBLE TO DO: lock others for change
+        # POSSIBLE TODO: lock others for change
 
         # git commit and push to remotes
         print("    -> Git commit")
@@ -192,6 +264,15 @@ class FakeOuput:
 
 
 def run_cmd(cmd, capture_output=True, timeout=1000, **kwargs):
+    """
+    Runs a shell command.
+
+    Parameters:
+        cmd(str): command to run.
+
+    Returns:
+        Exit code.
+    """
     try:
         value = subprocess.run(
             cmd, shell=True, capture_output=capture_output, timeout=timeout, **kwargs
@@ -237,7 +318,7 @@ def main(args=None):
         backup_repo=args.backup,
     )
 
-    deployer.pull_target("origin")
+    deployer.pull_remote("origin")
     deployer.diff_staging()
 
     if args.push:
