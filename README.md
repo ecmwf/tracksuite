@@ -16,6 +16,7 @@ To install trackploy using pip (requires python, ecflow and pip):
 
 ## Usage
 To initialise the remote target git repository (see options with --help):
+    
     usage: trackploy-init [-h] --target TARGET [--backup BACKUP] [--host HOST] [--user USER] [--force]
 
     Remote suite folder initialisation tool
@@ -29,6 +30,7 @@ To initialise the remote target git repository (see options with --help):
     --force          Force push to remote
 
 To stage and deploy a suite:
+    
     usage: trackploy-deploy [-h] --stage STAGE --local LOCAL --target TARGET [--backup BACKUP] [--host HOST] [--user USER]
                         [--push] [--message MESSAGE]
 
