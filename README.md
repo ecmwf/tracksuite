@@ -7,6 +7,7 @@ Interfaces and functionality are likely to change, and the project itself may be
 **DO NOT** use this software in any project/software that is operational.
 
 ## Overview
+
 ![](workflow.png)
 
 ## Installation
@@ -15,7 +16,7 @@ To install trackploy using pip (requires python, ecflow and pip):
     python -m pip install .
 
 ## Usage
-To initialise the remote target git repository (see options with --help):
+To initialise the remote target git repository:
     
     usage: trackploy-init [-h] --target TARGET [--backup BACKUP] [--host HOST] [--user USER] [--force]
 
