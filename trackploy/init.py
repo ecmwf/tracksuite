@@ -80,7 +80,7 @@ def setup_remote(host, user, target_dir, remote=None, push_options=None):
     else:
         ssh.exec("git init", dir=target_dir)
         ssh.exec("git config receive.denyCurrentBranch updateInstead", dir=target_dir)
-        ssh.exec("touch suite.def", dir=target_dir)
+        ssh.exec("touch dummy.txt", dir=target_dir)
         ssh.exec("git add .", dir=target_dir)
         ssh.exec("git commit -am 'first commit'", dir=target_dir)
         if remote:
@@ -96,10 +96,12 @@ def main(args=None):
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
     parser.add_argument("--force", action="store_true", help="Force push to remote")
+    parser.add_argument("--no_prompt", action="store_true", 
+                        help="No prompt, --force will go through without user input")
     args = parser.parse_args()
 
     push_options = ""
-    if args.backup and args.force:
+    if args.backup and args.force and not args.no_prompt:
         push_options += "-f"
         check = input(
             "You are about to force push to the remote repository. Are you sure? (Y/n)"

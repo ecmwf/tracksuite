@@ -29,10 +29,10 @@ class GitDeployment:
         """
 
         print("Creating deployer:")
-        deploy_user = os.getenv("USER")
-        deploy_host = os.getenv("HOSTNAME")
-        self.user = deploy_user if user is None else user
-        self.host = deploy_host if host is None else host
+        self.deploy_user = os.getenv("USER")
+        self.deploy_host = os.getenv("HOSTNAME")
+        self.user = self.deploy_user if user is None else user
+        self.host = self.deploy_host if host is None else host
 
         self.staging_dir = staging_dir
 
@@ -40,7 +40,7 @@ class GitDeployment:
         self.target_dir = target_repo
 
         # setup local repo
-        self.target_repo = f"ssh://{self.host}:{target_repo}"
+        self.target_repo = f"ssh://{self.user}@{self.host}:{target_repo}"
         try:
             print(f"    -> Loading local repo {local_repo}")
             self.repo = git.Repo(local_repo)
@@ -131,7 +131,7 @@ class GitDeployment:
         """
         try:
             commit_message = (
-                f"deployed by {self.user} from {self.host}:{self.staging_dir}\n"
+                f"deployed by {self.deploy_user} from {self.deploy_host}:{self.staging_dir}\n"
             )
             if message:
                 commit_message += message
@@ -161,16 +161,16 @@ class GitDeployment:
                 + "Check configuration and states of remote repository!"
             )
 
-    def pull_remote(self, remote):
+    def pull_remotes(self):
         """
         Git pull the remote repository to the local repository
-
-        Parameters:
-            remote(str): Name of the remote repository (typically "target").
         """
-        remote_repo = self.repo.remotes[remote]
+        remote_repo = self.repo.remotes["target"]
         remote_repo.pull()
-        self.check_sync_local_remote(remote)
+        self.check_sync_local_remote("target")
+        if self.backup_repo:
+            self.check_sync_local_remote("backup")
+            self.check_sync_remotes("target", "backup")
 
     def diff_staging(self):
         """
@@ -317,10 +317,10 @@ def main(args=None):
     parser.add_argument("--backup", help="URL to backup git repository")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
+    parser.add_argument("--message", help="Git message")
     parser.add_argument(
         "--push", action="store_true", help="Push staged suite to target"
     )
-    parser.add_argument("--message", help="Git message")
 
     args = parser.parse_args()
 
@@ -342,7 +342,7 @@ def main(args=None):
         backup_repo=args.backup,
     )
 
-    deployer.pull_remote("target")
+    deployer.pull_remotes()
     deployer.diff_staging()
 
     if args.push:
