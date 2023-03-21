@@ -331,7 +331,7 @@ def main(args=None):
         if check != "Y":
             exit(1)
         if not deployer.deploy(args.message):
-            print('Nothing to commit and push, bye!')
+            print('Nothing to commit.')
 
 
 if __name__ == "__main__":
