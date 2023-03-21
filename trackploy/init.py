@@ -1,7 +1,37 @@
 import argparse
 import os
 
-import paramiko
+from .utils import run_cmd
+
+
+class SSHClient:
+    def __init__(self, host, user, ssh_options=None):
+        self.host = host
+        self.user = user
+        self.ssh_command = f"ssh {self.user}@{self.host} "
+        if ssh_options:
+            self.ssh_command += ssh_options
+
+    def is_path(self, path):
+        # Build the ssh command
+        ssh_command = self.ssh_command + f"[ -d {path} ] && exit 1 || exit 0"
+        try:
+            run_cmd(ssh_command)
+        except Exception:
+            return True
+        return False
+
+    def exec(self, commands, dir=None):
+        if not isinstance(commands, list):
+            commands = [commands]
+        # Build the ssh command
+        ssh_command = self.ssh_command + '"'
+        if dir:
+            ssh_command += f"cd {dir}; "
+        for cmd in commands:
+            ssh_command += f"{cmd}; "
+        ssh_command += '"'
+        run_cmd(ssh_command)
 
 
 class SSHParamiko:
@@ -13,6 +43,8 @@ class SSHParamiko:
             host(str): The target host.
             user(str): The deploying user.
         """
+        import paramiko
+
         ssh = paramiko.SSHClient()
         ssh.load_system_host_keys()
         try:
@@ -71,21 +103,32 @@ def setup_remote(host, user, target_dir, remote=None, push_options=None):
         push_options(str): git push options ('typically --force').
     """
     print(f"Creating remote repository {target_dir} on host {host} with user {user}")
-    ssh = SSHParamiko(host, user)
+    ssh = SSHClient(host, user)
     ssh.exec(f"mkdir -p {target_dir}")
     if ssh.is_path(os.path.join(target_dir, ".git")):
         raise Exception(
             f"Git repo {target_dir} already initialised. Cleanup folder or skip initialisation."
         )
     else:
-        ssh.exec("git init", dir=target_dir)
-        ssh.exec("git config receive.denyCurrentBranch updateInstead", dir=target_dir)
-        ssh.exec("touch dummy.txt", dir=target_dir)
-        ssh.exec("git add .", dir=target_dir)
-        ssh.exec("git commit -am 'first commit'", dir=target_dir)
+        commands = [
+            "git init",
+            "git config receive.denyCurrentBranch updateInstead",
+            "touch dummy.txt",
+            "git add .",
+            "git commit -am 'first commit'",
+        ]
+        ssh.exec(commands, dir=target_dir)
         if remote:
-            ssh.exec(f"git remote add origin {remote}", dir=target_dir)
-            ssh.exec(f"git push {push_options} -u origin master", dir=target_dir)
+            try:
+                remote_cmds = [
+                    f"git remote add origin {remote}",
+                    f"git push {push_options} -u origin master",
+                ]
+                ssh.exec(remote_cmds, dir=target_dir)
+            except Exception:
+                raise Exception(
+                    f"Could not push first commit to backup repository {remote}! Please check the repository is empty."
+                )
 
 
 def main(args=None):
@@ -96,8 +139,11 @@ def main(args=None):
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
     parser.add_argument("--force", action="store_true", help="Force push to remote")
-    parser.add_argument("--no_prompt", action="store_true", 
-                        help="No prompt, --force will go through without user input")
+    parser.add_argument(
+        "--no_prompt",
+        action="store_true",
+        help="No prompt, --force will go through without user input",
+    )
     args = parser.parse_args()
 
     push_options = ""
