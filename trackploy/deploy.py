@@ -139,10 +139,11 @@ class GitDeployment:
             if diff:
                 self.repo.index.commit(commit_message)
             else:
-                raise Exception("Nothing to commit")
+                return False
         except Exception as e:
             print("Commit failed!")
             raise e
+        return True
 
     def push(self, remote):
         """
