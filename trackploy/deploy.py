@@ -258,7 +258,8 @@ class GitDeployment:
 
         # git commit and push to remotes
         print("    -> Git commit")
-        self.commit(message)
+        if not self.commit(message):
+            return False
         print(f"    -> Git push to target {self.target_repo} on host {self.host}")
 
         hash_check = self.get_hash_remote("target")
@@ -272,6 +273,8 @@ class GitDeployment:
         if self.backup_repo:
             print(f"    -> Git push to backup repository {self.backup_repo}")
             self.push("backup")
+        
+        return True
 
     # TODO: add function to sync remotes
     def sync_remotes(self, source, target):
@@ -327,7 +330,8 @@ def main(args=None):
         )
         if check != "Y":
             exit(1)
-        deployer.deploy(args.message)
+        if not deployer.deploy(args.message):
+            print('Nothing to commit and push, bye!')
 
 
 if __name__ == "__main__":
