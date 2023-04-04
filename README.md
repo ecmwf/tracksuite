@@ -6,8 +6,7 @@ This project is **BETA** and will be **Experimental** for the foreseeable future
 Interfaces and functionality are likely to change, and the project itself may be scrapped.
 **DO NOT** use this software in any project/software that is operational.
 
-## Overview
-![](workflow.png)
+![](tracksuite.png)
 
 ## Installation
 To install tracksuite using pip (requires python, ecflow and pip):
@@ -46,3 +45,6 @@ To stage and deploy a suite:
     --user USER        Deploy user
     --push             Push staged suite to target
     --message MESSAGE  Git message
+
+## Overview
+![](workflow.png)
