@@ -1,4 +1,4 @@
-# trackploy
+# tracksuite
 Track and Deploy workflows and suites through git
 
 **:warning:DISCLAIMER:warning:**:
@@ -6,18 +6,17 @@ This project is **BETA** and will be **Experimental** for the foreseeable future
 Interfaces and functionality are likely to change, and the project itself may be scrapped.
 **DO NOT** use this software in any project/software that is operational.
 
-## Overview
-![](workflow.png)
+![](tracksuite.png)
 
 ## Installation
-To install trackploy using pip (requires python, ecflow and pip):
+To install tracksuite using pip (requires python, ecflow and pip):
 
     python -m pip install .
 
 ## Usage
 To initialise the remote target git repository:
     
-    usage: trackploy-init [-h] --target TARGET [--backup BACKUP] [--host HOST] [--user USER] [--force]
+    usage: tracksuite-init [-h] --target TARGET [--backup BACKUP] [--host HOST] [--user USER] [--force]
 
     Remote suite folder initialisation tool
 
@@ -31,7 +30,7 @@ To initialise the remote target git repository:
 
 To stage and deploy a suite:
     
-    usage: trackploy-deploy [-h] --stage STAGE --local LOCAL --target TARGET [--backup BACKUP] [--host HOST] [--user USER]
+    usage: tracksuite-deploy [-h] --stage STAGE --local LOCAL --target TARGET [--backup BACKUP] [--host HOST] [--user USER]
                         [--push] [--message MESSAGE]
 
     Suite deployment tool
@@ -46,3 +45,6 @@ To stage and deploy a suite:
     --user USER        Deploy user
     --push             Push staged suite to target
     --message MESSAGE  Git message
+
+## Overview
+![](workflow.png)

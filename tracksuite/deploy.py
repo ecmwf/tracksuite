@@ -1,9 +1,10 @@
 import argparse
 import os
-import subprocess
 from filecmp import dircmp
 
 import git
+
+from .utils import run_cmd
 
 
 class GitDeployment:
@@ -49,7 +50,7 @@ class GitDeployment:
                 f"    -> Could not find git repo in {local_repo}, cloning from {self.target_repo}"
             )
             self.repo = git.Repo.clone_from(self.target_repo, local_repo, depth=1)
-            self.repo.remotes['origin'].rename('target')
+            self.repo.remotes["origin"].rename("target")
 
         # link with backup repo
         self.backup_repo = backup_repo
@@ -130,9 +131,7 @@ class GitDeployment:
             message(str): optional git commit message to append to default message
         """
         try:
-            commit_message = (
-                f"deployed by {self.deploy_user} from {self.deploy_host}:{self.staging_dir}\n"
-            )
+            commit_message = f"deployed by {self.deploy_user} from {self.deploy_host}:{self.staging_dir}\n"
             if message:
                 commit_message += message
             self.repo.git.add("--all")
@@ -140,10 +139,11 @@ class GitDeployment:
             if diff:
                 self.repo.index.commit(commit_message)
             else:
-                raise Exception("Nothing to commit")
+                return False
         except Exception as e:
             print("Commit failed!")
             raise e
+        return True
 
     def push(self, remote):
         """
@@ -250,13 +250,16 @@ class GitDeployment:
         # rsync staging folder to current repo
         print("    -> Staging suite")
         # TODO: check if rsync fails
-        cmd = f"rsync -avz --delete {self.staging_dir}/ {self.local_dir}/ --exclude .git"
+        cmd = (
+            f"rsync -avz --delete {self.staging_dir}/ {self.local_dir}/ --exclude .git"
+        )
         run_cmd(cmd)
         # POSSIBLE TODO: lock others for change
 
         # git commit and push to remotes
         print("    -> Git commit")
-        self.commit(message)
+        if not self.commit(message):
+            return False
         print(f"    -> Git push to target {self.target_repo} on host {self.host}")
 
         hash_check = self.get_hash_remote("target")
@@ -270,36 +273,12 @@ class GitDeployment:
         if self.backup_repo:
             print(f"    -> Git push to backup repository {self.backup_repo}")
             self.push("backup")
+        
+        return True
 
     # TODO: add function to sync remotes
     def sync_remotes(self, source, target):
         return
-
-
-class FakeOuput:
-    returncode = 1
-    stderr = "Timeout! It took more than 300 seconds"
-
-
-def run_cmd(cmd, capture_output=True, timeout=1000, **kwargs):
-    """
-    Runs a shell command.
-
-    Parameters:
-        cmd(str): command to run.
-
-    Returns:
-        Exit code.
-    """
-    try:
-        value = subprocess.run(
-            cmd, shell=True, capture_output=capture_output, timeout=timeout, **kwargs
-        )
-    except subprocess.TimeoutExpired:
-        value = FakeOuput()
-    if value.returncode > 0:
-        raise Exception(f"ERROR! Command failed!\n{value}")
-    return value
 
 
 def main(args=None):
@@ -351,7 +330,8 @@ def main(args=None):
         )
         if check != "Y":
             exit(1)
-        deployer.deploy(args.message)
+        if not deployer.deploy(args.message):
+            print('Nothing to commit.')
 
 
 if __name__ == "__main__":
