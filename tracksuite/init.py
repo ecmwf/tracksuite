@@ -1,5 +1,8 @@
 import argparse
 import os
+import tempfile
+
+import git
 
 from .utils import run_cmd
 
@@ -87,7 +90,7 @@ class SSHParamiko:
             raise Exception(f"SSH exec command failed: {cmd}")
 
 
-def setup_remote(host, user, target_dir, remote=None, push_options=None):
+def setup_remote(host, user, target_dir, remote=None, force=False):
     """
     Setup target and remote repositories.
     Steps:
@@ -100,7 +103,7 @@ def setup_remote(host, user, target_dir, remote=None, push_options=None):
         user(str): The deploying user.
         target_dir(str): The target git repository.
         remote(str): The remote backup git repository (optional).
-        push_options(str): git push options ('typically --force').
+        force(bool): force push to backup.
     """
     print(f"Creating remote repository {target_dir} on host {host} with user {user}")
     ssh = SSHClient(host, user)
@@ -120,11 +123,19 @@ def setup_remote(host, user, target_dir, remote=None, push_options=None):
         ssh.exec(commands, dir=target_dir)
         if remote:
             try:
-                remote_cmds = [
-                    f"git remote add origin {remote}",
-                    f"git push {push_options} -u origin master",
-                ]
-                ssh.exec(remote_cmds, dir=target_dir)
+
+                target_repo = f"ssh://{user}@{host}:{target_dir}"
+                with tempfile.TemporaryDirectory() as tmp_repo:
+                    repo = git.Repo.clone_from(target_repo, tmp_repo)
+                    repo.create_remote("backup", url=remote)
+                    remote_repo = repo.remotes["backup"]
+                    try:
+                        remote_repo.push(force=force).raise_if_error()
+                    except git.exc.GitCommandError:
+                        raise git.exc.GitCommandError(
+                            f"Could not push changes to remote repository {remote}.\n"
+                            + "Check configuration and states of remote repository!"
+                        )
             except Exception:
                 raise Exception(
                     f"Could not push first commit to backup repository {remote}! Please check the repository is empty."
@@ -146,9 +157,9 @@ def main(args=None):
     )
     args = parser.parse_args()
 
-    push_options = ""
+    force = False
     if args.backup and args.force and not args.no_prompt:
-        push_options += "-f"
+        force = True
         check = input(
             "You are about to force push to the remote repository. Are you sure? (Y/n)"
         )
@@ -160,9 +171,9 @@ def main(args=None):
     print(f"    - user: {args.user}")
     print(f"    - target: {args.target}")
     print(f"    - backup: {args.backup}")
-    print(f"    - push_options: {push_options}")
+    print(f"    - force push: {force}")
 
-    setup_remote(args.host, args.user, args.target, args.backup, push_options)
+    setup_remote(args.host, args.user, args.target, args.backup, force)
 
 
 if __name__ == "__main__":

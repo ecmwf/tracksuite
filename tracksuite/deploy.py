@@ -259,6 +259,7 @@ class GitDeployment:
         # git commit and push to remotes
         print("    -> Git commit")
         if not self.commit(message):
+            print(f'Nothing to commit... aborting')
             return False
         print(f"    -> Git push to target {self.target_repo} on host {self.host}")
 
@@ -330,8 +331,7 @@ def main(args=None):
         )
         if check != "Y":
             exit(1)
-        if not deployer.deploy(args.message):
-            print('Nothing to commit.')
+        deployer.deploy(args.message)
 
 
 if __name__ == "__main__":
