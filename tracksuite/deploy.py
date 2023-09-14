@@ -211,7 +211,7 @@ class GitDeployment:
             for dir, sub_dcmp in dcmp.subdirs.items():
                 get_diff_files(sub_dcmp, root=os.path.join(root, dir))
 
-        diff = dircmp(self.staging_dir, self.target_dir)
+        diff = dircmp(self.staging_dir, self.local_dir)
         print("Changes in staged suite:")
         get_diff_files(diff)
         changes = [
