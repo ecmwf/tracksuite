@@ -34,7 +34,8 @@ class SSHClient:
         for cmd in commands:
             ssh_command += f"{cmd}; "
         ssh_command += '"'
-        run_cmd(ssh_command)
+        value = run_cmd(ssh_command)
+        return value
 
 
 class SSHParamiko:
@@ -119,14 +120,19 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
             "touch dummy.txt",
             "git add .",
             "git commit -am 'first commit'",
+            "exit 0"
         ]
         ssh.exec(commands, dir=target_dir)
-        if remote:
-            try:
 
-                target_repo = f"ssh://{user}@{host}:{target_dir}"
-                with tempfile.TemporaryDirectory() as tmp_repo:
-                    repo = git.Repo.clone_from(target_repo, tmp_repo)
+        # making sure we can clone the repository
+        if not ssh.is_path(target_dir):
+            raise Exception(f'Target directory {target_dir} not properaly created')
+        target_repo = f"ssh://{user}@{host}:{target_dir}"
+        with tempfile.TemporaryDirectory() as tmp_repo:
+            repo = git.Repo.clone_from(target_repo, tmp_repo)
+
+            if remote:
+                try:
                     repo.create_remote("backup", url=remote)
                     remote_repo = repo.remotes["backup"]
                     try:
@@ -136,10 +142,10 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
                             f"Could not push changes to remote repository {remote}.\n"
                             + "Check configuration and states of remote repository!"
                         )
-            except Exception:
-                raise Exception(
-                    f"Could not push first commit to backup repository {remote}! Please check the repository is empty."
-                )
+                except Exception:
+                    raise Exception(
+                        f"Could not push first commit to backup repository {remote}! Please check the repository is empty."
+                    )
 
 
 def main(args=None):

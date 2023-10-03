@@ -38,6 +38,7 @@ class GitDeployment:
         self.staging_dir = staging_dir
 
         self.local_dir = local_repo
+        
         self.target_dir = target_repo
 
         # setup local repo
@@ -224,6 +225,9 @@ class GitDeployment:
                 print(f"    - {name}:")
                 for path in files:
                     print(f"        - {path}")
+        print("For more details, compare the following folders:")
+        print(self.staging_dir)
+        print(self.local_dir)
 
     def deploy(self, message=None):
         """
