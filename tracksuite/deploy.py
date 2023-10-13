@@ -42,7 +42,11 @@ class GitDeployment:
         self.target_dir = target_repo
 
         # setup local repo
-        self.target_repo = f"ssh://{self.user}@{self.host}:{target_repo}"
+        # for test purpose with /tmp folders, stay local with localhost
+        if self.host == 'localhost':
+            self.target_repo = f"{target_repo}"
+        else:
+            self.target_repo = f"ssh://{self.user}@{self.host}:{target_repo}"
         try:
             print(f"    -> Loading local repo {local_repo}")
             self.repo = git.Repo(local_repo)
@@ -50,6 +54,7 @@ class GitDeployment:
             print(
                 f"    -> Could not find git repo in {local_repo}, cloning from {self.target_repo}"
             )
+            
             self.repo = git.Repo.clone_from(self.target_repo, local_repo, depth=1)
             self.repo.remotes["origin"].rename("target")
 

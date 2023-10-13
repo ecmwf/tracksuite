@@ -7,13 +7,47 @@ import git
 from .utils import run_cmd
 
 
-class SSHClient:
-    def __init__(self, host, user, ssh_options=None):
+class Client():
+    def __init__(self, host, user):
+        """
+        Base client class to run commands on local or remote host.
+
+        Parameters:
+            host(str): The target host.
+            user(str): The deploying user.
+        """
         self.host = host
         self.user = user
-        self.ssh_command = f"ssh {self.user}@{self.host} "
+
+    def is_path(self, path):
+        """
+        Checks if path exists on host.
+
+        Parameters:
+            path(str): Path to check.
+        """
+        raise NotImplementedError
+    
+    def exec(self, commands, dir=None):
+        """
+        Execute shell command on host.
+
+        Parameters:
+            cmd(str): Command to execute.
+            dir(str): Directory in which to run (optional).
+        """
+        raise NotImplementedError
+
+
+class SSHClient(Client):
+    """
+    SSH client class to run commands on remote host.
+    """
+    def __init__(self, host, user, ssh_options=None):
+        self.ssh_command = f"ssh {user}@{host} "
         if ssh_options:
             self.ssh_command += ssh_options
+        super().__init__(host, user)
 
     def is_path(self, path):
         # Build the ssh command
@@ -38,57 +72,29 @@ class SSHClient:
         return value
 
 
-class SSHParamiko:
+class LocalHostClient(Client):
+    """
+    Localhost client class to run commands on local host.
+    """
     def __init__(self, host, user):
-        """
-        Class wrapping the paramiko SSHClient object.
-
-        Parameters:
-            host(str): The target host.
-            user(str): The deploying user.
-        """
-        import paramiko
-
-        ssh = paramiko.SSHClient()
-        ssh.load_system_host_keys()
-        try:
-            ssh.connect(hostname=host, username=user)
-        except paramiko.ssh_exception.AuthenticationException:
-            raise paramiko.ssh_exception.AuthenticationException(
-                f"Could not setup remote ssh connection. Check your username ({user}) and host ({host})"
-            )
-        self.sftp = ssh.open_sftp()
-        self.ssh = ssh
+        assert host == "localhost"
+        super().__init__(host, user)
 
     def is_path(self, path):
-        """
-        Checks if path exists on remote host.
+        return os.path.exists(path)
 
-        Parameters:
-            path(str): Path to check.
-        """
-        try:
-            self.sftp.stat(path)
-            return True
-        except FileNotFoundError:
-            return False
-
-    def exec(self, cmd, dir=None):
-        """
-        Execute shell command on remote host.
-
-        Parameters:
-            cmd(str): Command to execute.
-            dir(str): Directory in which to run (optional).
-        """
+    def exec(self, command_list, dir=None):
+        if not isinstance(command_list, list):
+            command = [command_list]
+        else:
+            command = command_list
+        full_command = ""
         if dir:
-            cmd = f"cd {dir}; {cmd}"
-        stdin, stdout, stderr = self.ssh.exec_command(cmd)
-        if stdout.channel.recv_exit_status() != 0:
-            for out in stdout, stderr:
-                for line in out:
-                    print(line)
-            raise Exception(f"SSH exec command failed: {cmd}")
+            full_command += f"cd {dir}; "
+        for cmd in command:
+            full_command += f"{cmd}; "
+        value = run_cmd(full_command)
+        return value
 
 
 def setup_remote(host, user, target_dir, remote=None, force=False):
@@ -107,7 +113,13 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
         force(bool): force push to backup.
     """
     print(f"Creating remote repository {target_dir} on host {host} with user {user}")
-    ssh = SSHClient(host, user)
+    # for test purpose with /tmp folders, stay local with localhost
+    if host == 'localhost':
+        ssh = LocalHostClient(host, user)
+        target_repo = f"{target_dir}"
+    else:
+        ssh = SSHClient(host, user)
+        target_repo = f"ssh://{user}@{host}:{target_dir}"
     ssh.exec(f"mkdir -p {target_dir}")
     if ssh.is_path(os.path.join(target_dir, ".git")):
         raise Exception(
@@ -126,8 +138,7 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
 
         # making sure we can clone the repository
         if not ssh.is_path(target_dir):
-            raise Exception(f'Target directory {target_dir} not properaly created')
-        target_repo = f"ssh://{user}@{host}:{target_dir}"
+            raise Exception(f'Target directory {target_dir} not properaly created on {host} with user {user}')
         with tempfile.TemporaryDirectory() as tmp_repo:
             repo = git.Repo.clone_from(target_repo, tmp_repo)
 
