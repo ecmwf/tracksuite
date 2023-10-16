@@ -1,6 +1,7 @@
 import argparse
 import os
 import tempfile
+from time import sleep
 
 import git
 
@@ -97,7 +98,7 @@ class LocalHostClient(Client):
         return value
 
 
-def setup_remote(host, user, target_dir, remote=None, force=False, default_branch="main"):
+def setup_remote(host, user, target_dir, remote=None, force=False, default_branch="master"):
     """
     Setup target and remote repositories.
     Steps:
@@ -121,7 +122,12 @@ def setup_remote(host, user, target_dir, remote=None, force=False, default_branc
     else:
         ssh = SSHClient(host, user)
         target_repo = f"ssh://{user}@{host}:{target_dir}"
-    ssh.exec(f"mkdir -p {target_dir}")
+    
+    # create folder and make sure it exists
+    ssh.exec(f"mkdir -p {target_dir}; exit 0")
+    if not ssh.is_path(target_dir):
+        raise Exception(f'Target directory {target_dir} not properly created on {host} with user {user}')
+    
     if ssh.is_path(os.path.join(target_dir, ".git")):
         raise Exception(
             f"Git repo {target_dir} already initialised. Cleanup folder or skip initialisation."
@@ -136,12 +142,12 @@ def setup_remote(host, user, target_dir, remote=None, force=False, default_branc
             "exit 0"
         ]
         ssh.exec(commands, dir=target_dir)
+        if not ssh.is_path(os.path.join(target_dir, ".git")):
+            raise Exception(f'Target directory {target_dir} not properly created on {host} with user {user}')
 
         # making sure we can clone the repository
-        if not ssh.is_path(target_dir):
-            raise Exception(f'Target directory {target_dir} not properly created on {host} with user {user}')
         with tempfile.TemporaryDirectory() as tmp_repo:
-            repo = git.Repo.clone_from(target_repo, tmp_repo)
+            repo = git.Repo.clone_from(target_repo, tmp_repo, branch=default_branch)
 
             if remote:
                 try:

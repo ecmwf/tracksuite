@@ -16,7 +16,7 @@ class GitDeployment:
         local_repo=None,
         target_repo=None,
         backup_repo=None,
-        default_branch="main",
+        default_branch="master",
     ):
         """
         Class used to deploy suites through git.
@@ -58,7 +58,7 @@ class GitDeployment:
                 f"    -> Cloning from {self.target_repo}"
             )
             
-            self.repo = git.Repo.clone_from(self.target_repo, local_repo, depth=1)
+            self.repo = git.Repo.clone_from(self.target_repo, local_repo, depth=1, branch=self.default_branch)
             self.repo.remotes["origin"].rename("target")
 
         # link with backup repo
