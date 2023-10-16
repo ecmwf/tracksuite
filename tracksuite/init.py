@@ -97,7 +97,7 @@ class LocalHostClient(Client):
         return value
 
 
-def setup_remote(host, user, target_dir, remote=None, force=False):
+def setup_remote(host, user, target_dir, remote=None, force=False, default_branch="main"):
     """
     Setup target and remote repositories.
     Steps:
@@ -111,6 +111,7 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
         target_dir(str): The target git repository.
         remote(str): The remote backup git repository (optional).
         force(bool): force push to backup.
+        default_branch(str): git default branch.
     """
     print(f"Creating remote repository {target_dir} on host {host} with user {user}")
     # for test purpose with /tmp folders, stay local with localhost
@@ -127,7 +128,7 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
         )
     else:
         commands = [
-            "git init",
+            f"git init -b {default_branch}",
             "git config receive.denyCurrentBranch updateInstead",
             "touch dummy.txt",
             "git add .",
@@ -138,7 +139,7 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
 
         # making sure we can clone the repository
         if not ssh.is_path(target_dir):
-            raise Exception(f'Target directory {target_dir} not properaly created on {host} with user {user}')
+            raise Exception(f'Target directory {target_dir} not properly created on {host} with user {user}')
         with tempfile.TemporaryDirectory() as tmp_repo:
             repo = git.Repo.clone_from(target_repo, tmp_repo)
 

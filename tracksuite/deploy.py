@@ -16,6 +16,7 @@ class GitDeployment:
         local_repo=None,
         target_repo=None,
         backup_repo=None,
+        default_branch="main",
     ):
         """
         Class used to deploy suites through git.
@@ -27,6 +28,7 @@ class GitDeployment:
             local_repo(str): Path to the local repository.
             target_repo(str): Path to the target repository on the target host.
             backup_repo(str): URL of the backup repository.
+            default_branch(str): default branch of the git repository.
         """
 
         print("Creating deployer:")
@@ -34,6 +36,7 @@ class GitDeployment:
         self.deploy_host = os.getenv("HOSTNAME")
         self.user = self.deploy_user if user is None else user
         self.host = self.deploy_host if host is None else host
+        self.default_branch = default_branch
 
         self.staging_dir = staging_dir
 
@@ -52,7 +55,7 @@ class GitDeployment:
             self.repo = git.Repo(local_repo)
         except (git.exc.NoSuchPathError, git.exc.InvalidGitRepositoryError):
             print(
-                f"    -> Could not find git repo in {local_repo}, cloning from {self.target_repo}"
+                f"    -> Cloning from {self.target_repo}"
             )
             
             self.repo = git.Repo.clone_from(self.target_repo, local_repo, depth=1)
@@ -67,15 +70,15 @@ class GitDeployment:
 
     def get_hash_remote(self, remote):
         """
-        Get the git hash of a remote repository on the master branch.
+        Get the git hash of a remote repository on the default branch.
 
         Parameters:
             remote(str): Name of the remote repository (typically "target").
 
         Returns:
-            The git hash of the master branch.
+            The git hash of the default branch.
         """
-        return self.repo.git.ls_remote("--heads", remote, "master").split("\t")[0]
+        return self.repo.git.ls_remote("--heads", remote, self.default_branch).split("\t")[0]
 
     def check_sync_local_remote(self, remote):
         """
@@ -91,7 +94,7 @@ class GitDeployment:
         remote_repo = self.repo.remotes[remote]
         remote_repo.fetch()
         hash_target = self.get_hash_remote(remote)
-        hash_local = self.repo.git.rev_parse("master")
+        hash_local = self.repo.git.rev_parse(self.default_branch)
         if hash_target != hash_local:
             print(f"Local hash {hash_local}")
             print(f"Target hash {hash_target}")
