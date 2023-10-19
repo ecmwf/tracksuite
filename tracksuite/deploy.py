@@ -263,7 +263,7 @@ class GitDeployment:
         print("    -> Staging suite")
         # TODO: check if rsync fails
         cmd = (
-            f"rsync -avz --delete {self.staging_dir}/ {self.local_dir}/ --exclude .git"
+            f"rsync -avzc --delete {self.staging_dir}/ {self.local_dir}/ --exclude .git"
         )
         run_cmd(cmd)
         # POSSIBLE TODO: lock others for change
