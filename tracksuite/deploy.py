@@ -1,5 +1,6 @@
 import argparse
 import os
+import tempfile
 from filecmp import dircmp
 
 import git
@@ -16,7 +17,6 @@ class GitDeployment:
         local_repo=None,
         target_repo=None,
         backup_repo=None,
-        default_branch="master",
     ):
         """
         Class used to deploy suites through git.
@@ -28,7 +28,6 @@ class GitDeployment:
             local_repo(str): Path to the local repository.
             target_repo(str): Path to the target repository on the target host.
             backup_repo(str): URL of the backup repository.
-            default_branch(str): default branch of the git repository.
         """
 
         print("Creating deployer:")
@@ -36,17 +35,20 @@ class GitDeployment:
         self.deploy_host = os.getenv("HOSTNAME")
         self.user = self.deploy_user if user is None else user
         self.host = self.deploy_host if host is None else host
-        self.default_branch = default_branch
 
         self.staging_dir = staging_dir
+        if self.staging_dir is None:
+            raise Exception("Staging directory not specified")
 
+        if local_repo is None:
+            local_repo = tempfile.mkdtemp(prefix="suite_")
         self.local_dir = local_repo
-        
+
         self.target_dir = target_repo
 
         # setup local repo
         # for test purpose with /tmp folders, stay local with localhost
-        if self.host == 'localhost':
+        if self.host == "localhost":
             self.target_repo = f"{target_repo}"
         else:
             self.target_repo = f"ssh://{self.user}@{self.host}:{target_repo}"
@@ -54,19 +56,19 @@ class GitDeployment:
             print(f"    -> Loading local repo {local_repo}")
             self.repo = git.Repo(local_repo)
         except (git.exc.NoSuchPathError, git.exc.InvalidGitRepositoryError):
-            print(
-                f"    -> Cloning from {self.target_repo}"
-            )
-            
-            self.repo = git.Repo.clone_from(self.target_repo, local_repo, depth=1, branch=self.default_branch)
+            print(f"    -> Cloning from {self.target_repo}")
+            self.repo = git.Repo.clone_from(self.target_repo, local_repo, depth=1)
             self.repo.remotes["origin"].rename("target")
+
+        # get the name of the default branch
+        self.default_branch = self.repo.active_branch.name
 
         # link with backup repo
         self.backup_repo = backup_repo
         if backup_repo and "backup" not in self.repo.remotes:
             print(f"    -> Creating backup remote {backup_repo}")
             self.repo.create_remote("backup", url=backup_repo)
-            self.check_sync_remotes("target", "backup")
+            self.sync_remotes()
 
     def get_hash_remote(self, remote):
         """
@@ -78,7 +80,8 @@ class GitDeployment:
         Returns:
             The git hash of the default branch.
         """
-        return self.repo.git.ls_remote("--heads", remote, self.default_branch).split("\t")[0]
+        remote_branch = self.repo.remotes[remote].refs[self.default_branch]
+        return remote_branch.commit.hexsha
 
     def check_sync_local_remote(self, remote):
         """
@@ -94,7 +97,7 @@ class GitDeployment:
         remote_repo = self.repo.remotes[remote]
         remote_repo.fetch()
         hash_target = self.get_hash_remote(remote)
-        hash_local = self.repo.git.rev_parse(self.default_branch)
+        hash_local = self.repo.active_branch.commit.hexsha
         if hash_target != hash_local:
             print(f"Local hash {hash_local}")
             print(f"Target hash {hash_target}")
@@ -129,7 +132,7 @@ class GitDeployment:
             )
         return hash1
 
-    def commit(self, message=None):
+    def commit(self, message=None, files=None):
         """
         Commits the current stage of the local repository.
         Throws exception if there is nothing to commit.
@@ -139,11 +142,13 @@ class GitDeployment:
         Parameters:
             message(str): optional git commit message to append to default message
         """
+        if files is None:
+            files = "--all"
         try:
             commit_message = f"deployed by {self.deploy_user} from {self.deploy_host}:{self.staging_dir}\n"
             if message:
                 commit_message += message
-            self.repo.git.add("--all")
+            self.repo.git.add(files)
             diff = self.repo.index.diff(self.repo.commit())
             if diff:
                 self.repo.index.commit(commit_message)
@@ -179,8 +184,7 @@ class GitDeployment:
         remote_repo.pull()
         self.check_sync_local_remote("target")
         if self.backup_repo:
-            self.check_sync_local_remote("backup")
-            self.check_sync_remotes("target", "backup")
+            self.sync_remotes()
 
     def diff_staging(self):
         """
@@ -238,7 +242,7 @@ class GitDeployment:
         print(self.staging_dir)
         print(self.local_dir)
 
-    def deploy(self, message=None):
+    def deploy(self, message=None, files=None):
         """
         Deploy the staged suite to the target repository.
         Steps:
@@ -262,17 +266,14 @@ class GitDeployment:
 
         # rsync staging folder to current repo
         print("    -> Staging suite")
-        # TODO: check if rsync fails
-        cmd = (
-            f"rsync -avz --delete {self.staging_dir}/ {self.local_dir}/ --exclude .git"
-        )
+        rsync_options = "-avz --delete  --exclude .git "
+        cmd = f"rsync {rsync_options} {self.staging_dir}/ {self.local_dir}/"
         run_cmd(cmd)
-        # POSSIBLE TODO: lock others for change
 
         # git commit and push to remotes
         print("    -> Git commit")
-        if not self.commit(message):
-            print(f'Nothing to commit... aborting')
+        if not self.commit(message, files):
+            print("Nothing to commit... aborting")
             return False
         print(f"    -> Git push to target {self.target_repo} on host {self.host}")
 
@@ -287,12 +288,22 @@ class GitDeployment:
         if self.backup_repo:
             print(f"    -> Git push to backup repository {self.backup_repo}")
             self.push("backup")
-        
+
         return True
 
-    # TODO: add function to sync remotes
-    def sync_remotes(self, source, target):
-        return
+    def sync_remotes(self):
+        """
+        Sync the remote repositories.
+        Steps:
+            - git fetch remote repositories and check they are in sync
+            - git push to backup if needed
+        """
+        try:
+            self.check_sync_local_remote("backup")
+            self.check_sync_remotes("target", "backup")
+        except Exception:
+            print("WARNING! Backup repository outdated. Pushing update to backup")
+            self.push("backup")
 
 
 def main(args=None):
@@ -300,12 +311,11 @@ def main(args=None):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--stage", required=True, help="Staged suite")
     parser.add_argument(
-        "--local",
-        required=True,
-        help="Path to local git repository (will be created if doesn't exist)",
+        "--target", required=True, help="Path to target git repository on host"
     )
     parser.add_argument(
-        "--target", required=True, help="Path to target git repository on host"
+        "--local",
+        help="Path to local git repository (will be created if doesn't exist)",
     )
     parser.add_argument("--backup", help="URL to backup git repository")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
@@ -313,6 +323,12 @@ def main(args=None):
     parser.add_argument("--message", help="Git message")
     parser.add_argument(
         "--push", action="store_true", help="Push staged suite to target"
+    )
+    parser.add_argument(
+        "-f",
+        "--files",
+        nargs="+",
+        help="Specific files to deploy, by default everything is deployed",
     )
 
     args = parser.parse_args()
@@ -325,6 +341,7 @@ def main(args=None):
     print(f"    - target repo: {args.target}")
     print(f"    - backup repo: {args.backup}")
     print(f"    - git message: {args.message}")
+    print(f"    - files to deploy: {args.files}")
 
     deployer = GitDeployment(
         host=args.host,
@@ -339,12 +356,17 @@ def main(args=None):
     deployer.diff_staging()
 
     if args.push:
+        if args.files is not None:
+            print("Deploying only the following files:")
+            for f in args.files:
+                print(f"    - {f}")
+
         check = input(
-            "You are about to push the staged suite to the target directory. Are you sure? (Y/n)"
+            "You are about to push the staged suite to the target directory. Are you sure? (y/N)"
         )
-        if check != "Y":
+        if check != "y":
             exit(1)
-        deployer.deploy(args.message)
+        deployer.deploy(args.message, args.files)
 
 
 if __name__ == "__main__":

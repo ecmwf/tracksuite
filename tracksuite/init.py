@@ -1,14 +1,13 @@
 import argparse
 import os
 import tempfile
-from time import sleep
 
 import git
 
 from .utils import run_cmd
 
 
-class Client():
+class Client:
     def __init__(self, host, user):
         """
         Base client class to run commands on local or remote host.
@@ -28,7 +27,7 @@ class Client():
             path(str): Path to check.
         """
         raise NotImplementedError
-    
+
     def exec(self, commands, dir=None):
         """
         Execute shell command on host.
@@ -44,6 +43,7 @@ class SSHClient(Client):
     """
     SSH client class to run commands on remote host.
     """
+
     def __init__(self, host, user, ssh_options=None):
         self.ssh_command = f"ssh {user}@{host} "
         if ssh_options:
@@ -77,6 +77,7 @@ class LocalHostClient(Client):
     """
     Localhost client class to run commands on local host.
     """
+
     def __init__(self, host, user):
         assert host == "localhost"
         super().__init__(host, user)
@@ -98,7 +99,7 @@ class LocalHostClient(Client):
         return value
 
 
-def setup_remote(host, user, target_dir, remote=None, force=False, default_branch="master"):
+def setup_remote(host, user, target_dir, remote=None, force=False):
     """
     Setup target and remote repositories.
     Steps:
@@ -112,42 +113,45 @@ def setup_remote(host, user, target_dir, remote=None, force=False, default_branc
         target_dir(str): The target git repository.
         remote(str): The remote backup git repository (optional).
         force(bool): force push to backup.
-        default_branch(str): git default branch.
     """
     print(f"Creating remote repository {target_dir} on host {host} with user {user}")
     # for test purpose with /tmp folders, stay local with localhost
-    if host == 'localhost':
+    if host == "localhost":
         ssh = LocalHostClient(host, user)
         target_repo = f"{target_dir}"
     else:
         ssh = SSHClient(host, user)
         target_repo = f"ssh://{user}@{host}:{target_dir}"
-    
+
     # create folder and make sure it exists
     ssh.exec(f"mkdir -p {target_dir}; exit 0")
     if not ssh.is_path(target_dir):
-        raise Exception(f'Target directory {target_dir} not properly created on {host} with user {user}')
-    
+        raise Exception(
+            f"Target directory {target_dir} not properly created on {host} with user {user}"
+        )
+
     if ssh.is_path(os.path.join(target_dir, ".git")):
         raise Exception(
             f"Git repo {target_dir} already initialised. Cleanup folder or skip initialisation."
         )
     else:
         commands = [
-            f"git init -b {default_branch}",
+            "git init",
             "git config receive.denyCurrentBranch updateInstead",
             "touch dummy.txt",
             "git add .",
             "git commit -am 'first commit'",
-            "exit 0"
+            "exit 0",
         ]
         ssh.exec(commands, dir=target_dir)
         if not ssh.is_path(os.path.join(target_dir, ".git")):
-            raise Exception(f'Target directory {target_dir} not properly created on {host} with user {user}')
+            raise Exception(
+                f"Target directory {target_dir} not properly created on {host} with user {user}"
+            )
 
         # making sure we can clone the repository
         with tempfile.TemporaryDirectory() as tmp_repo:
-            repo = git.Repo.clone_from(target_repo, tmp_repo, branch=default_branch)
+            repo = git.Repo.clone_from(target_repo, tmp_repo)
 
             if remote:
                 try:
@@ -162,7 +166,8 @@ def setup_remote(host, user, target_dir, remote=None, force=False, default_branc
                         )
                 except Exception:
                     raise Exception(
-                        f"Could not push first commit to backup repository {remote}! Please check the repository is empty."
+                        f"Could not push first commit to backup repository {remote}! "
+                        + "Please check the repository is empty."
                     )
 
 
