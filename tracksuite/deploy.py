@@ -166,8 +166,9 @@ class GitDeployment:
             remote_repo.push().raise_if_error()
         except git.exc.GitCommandError:
             raise git.exc.GitCommandError(
-                f"Could not push changes to remote repository {remote}.\n"
-                + "Check configuration and states of remote repository!"
+                f"Could not push changes to remote repository {remote}. "
+                + "Check configuration and the state of the remote repository! "
+                + "The remote repository might have uncommited changes."
             )
 
     def pull_remotes(self):
