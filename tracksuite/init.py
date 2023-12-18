@@ -52,12 +52,12 @@ class SSHClient(Client):
 
     def is_path(self, path):
         # Build the ssh command
-        ssh_command = self.ssh_command + f"[ -d {path} ] && exit 1 || exit 0"
+        cmd = [f"[ -d {path} ] && exit 0 || exit 1"]
         try:
-            run_cmd(ssh_command)
-        except Exception:
-            return True
-        return False
+            ret = self.exec(cmd)
+            return ret.returncode == 0
+        except:
+            return False
 
     def exec(self, commands, dir=None):
         if not isinstance(commands, list):
@@ -68,7 +68,6 @@ class SSHClient(Client):
             ssh_command += f"cd {dir}; "
         for cmd in commands:
             ssh_command += f"{cmd}; "
-        ssh_command += '"'
         value = run_cmd(ssh_command)
         return value
 
@@ -91,11 +90,9 @@ class LocalHostClient(Client):
         else:
             command = command_list
         full_command = ""
-        if dir:
-            full_command += f"cd {dir}; "
         for cmd in command:
             full_command += f"{cmd}; "
-        value = run_cmd(full_command)
+        value = run_cmd(full_command, cwd=dir)
         return value
 
 
@@ -124,20 +121,22 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
         target_repo = f"ssh://{user}@{host}:{target_dir}"
 
     # create folder and make sure it exists
-    ssh.exec(f"mkdir -p {target_dir}; exit 0")
+    ret = ssh.exec(f"mkdir -p {target_dir}; exit 0")
     if not ssh.is_path(target_dir):
         raise Exception(
-            f"Target directory {target_dir} not properly created on {host} with user {user}"
+            f"Target directory {target_dir} not properly created on {host} with user {user}\n\n" + ret.stdout
         )
 
-    if ssh.is_path(os.path.join(target_dir, ".git")):
+    target_git = os.path.join(target_dir, ".git")
+    if ssh.is_path(target_git):
         raise Exception(
             f"Git repo {target_dir} already initialised. Cleanup folder or skip initialisation."
         )
     else:
         commands = [
             "git init",
-            "git config receive.denyCurrentBranch updateInstead",
+            "[ -d .git ] && echo 'init complete' || exit 1",
+            "git config --local receive.denyCurrentBranch updateInstead",
             "touch dummy.txt",
             "git add .",
             "git commit -am 'first commit'",
@@ -150,6 +149,10 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
             )
 
         # making sure we can clone the repository
+        if not ssh.is_path(target_git):
+            print(f'Target directory {target_dir} not properaly created on {host} with user {user}')
+            raise Exception(ret.stdout)
+
         with tempfile.TemporaryDirectory() as tmp_repo:
             repo = git.Repo.clone_from(target_repo, tmp_repo)
 

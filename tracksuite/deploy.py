@@ -266,7 +266,8 @@ class GitDeployment:
 
         # rsync staging folder to current repo
         print("    -> Staging suite")
-        rsync_options = "-avz --delete  --exclude .git "
+
+        rsync_options = "-avzc --delete  --exclude .git "
         cmd = f"rsync {rsync_options} {self.staging_dir}/ {self.local_dir}/"
         run_cmd(cmd)
 
