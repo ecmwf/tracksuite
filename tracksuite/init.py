@@ -1,25 +1,63 @@
 import argparse
 import os
+import tempfile
+
+import git
 
 from .utils import run_cmd
 
 
-class SSHClient:
-    def __init__(self, host, user, ssh_options=None):
+class Client:
+    def __init__(self, host, user):
+        """
+        Base client class to run commands on local or remote host.
+
+        Parameters:
+            host(str): The target host.
+            user(str): The deploying user.
+        """
         self.host = host
         self.user = user
-        self.ssh_command = f"ssh {self.user}@{self.host} "
+
+    def is_path(self, path):
+        """
+        Checks if path exists on host.
+
+        Parameters:
+            path(str): Path to check.
+        """
+        raise NotImplementedError
+
+    def exec(self, commands, dir=None):
+        """
+        Execute shell command on host.
+
+        Parameters:
+            cmd(str): Command to execute.
+            dir(str): Directory in which to run (optional).
+        """
+        raise NotImplementedError
+
+
+class SSHClient(Client):
+    """
+    SSH client class to run commands on remote host.
+    """
+
+    def __init__(self, host, user, ssh_options=None):
+        self.ssh_command = f"ssh {user}@{host} "
         if ssh_options:
             self.ssh_command += ssh_options
+        super().__init__(host, user)
 
     def is_path(self, path):
         # Build the ssh command
-        ssh_command = self.ssh_command + f"[ -d {path} ] && exit 1 || exit 0"
+        cmd = [f"[ -d {path} ] && exit 0 || exit 1"]
         try:
-            run_cmd(ssh_command)
-        except Exception:
-            return True
-        return False
+            ret = self.exec(cmd)
+            return ret.returncode == 0
+        except:
+            return False
 
     def exec(self, commands, dir=None):
         if not isinstance(commands, list):
@@ -30,64 +68,35 @@ class SSHClient:
             ssh_command += f"cd {dir}; "
         for cmd in commands:
             ssh_command += f"{cmd}; "
-        ssh_command += '"'
-        run_cmd(ssh_command)
+        value = run_cmd(ssh_command)
+        return value
 
 
-class SSHParamiko:
+class LocalHostClient(Client):
+    """
+    Localhost client class to run commands on local host.
+    """
+
     def __init__(self, host, user):
-        """
-        Class wrapping the paramiko SSHClient object.
-
-        Parameters:
-            host(str): The target host.
-            user(str): The deploying user.
-        """
-        import paramiko
-
-        ssh = paramiko.SSHClient()
-        ssh.load_system_host_keys()
-        try:
-            ssh.connect(hostname=host, username=user)
-        except paramiko.ssh_exception.AuthenticationException:
-            raise paramiko.ssh_exception.AuthenticationException(
-                f"Could not setup remote ssh connection. Check your username ({user}) and host ({host})"
-            )
-        self.sftp = ssh.open_sftp()
-        self.ssh = ssh
+        assert host == "localhost"
+        super().__init__(host, user)
 
     def is_path(self, path):
-        """
-        Checks if path exists on remote host.
+        return os.path.exists(path)
 
-        Parameters:
-            path(str): Path to check.
-        """
-        try:
-            self.sftp.stat(path)
-            return True
-        except FileNotFoundError:
-            return False
-
-    def exec(self, cmd, dir=None):
-        """
-        Execute shell command on remote host.
-
-        Parameters:
-            cmd(str): Command to execute.
-            dir(str): Directory in which to run (optional).
-        """
-        if dir:
-            cmd = f"cd {dir}; {cmd}"
-        stdin, stdout, stderr = self.ssh.exec_command(cmd)
-        if stdout.channel.recv_exit_status() != 0:
-            for out in stdout, stderr:
-                for line in out:
-                    print(line)
-            raise Exception(f"SSH exec command failed: {cmd}")
+    def exec(self, command_list, dir=None):
+        if not isinstance(command_list, list):
+            command = [command_list]
+        else:
+            command = command_list
+        full_command = ""
+        for cmd in command:
+            full_command += f"{cmd}; "
+        value = run_cmd(full_command, cwd=dir)
+        return value
 
 
-def setup_remote(host, user, target_dir, remote=None, push_options=None):
+def setup_remote(host, user, target_dir, remote=None, force=False):
     """
     Setup target and remote repositories.
     Steps:
@@ -100,35 +109,69 @@ def setup_remote(host, user, target_dir, remote=None, push_options=None):
         user(str): The deploying user.
         target_dir(str): The target git repository.
         remote(str): The remote backup git repository (optional).
-        push_options(str): git push options ('typically --force').
+        force(bool): force push to backup.
     """
     print(f"Creating remote repository {target_dir} on host {host} with user {user}")
-    ssh = SSHClient(host, user)
-    ssh.exec(f"mkdir -p {target_dir}")
-    if ssh.is_path(os.path.join(target_dir, ".git")):
+    # for test purpose with /tmp folders, stay local with localhost
+    if host == "localhost":
+        ssh = LocalHostClient(host, user)
+        target_repo = f"{target_dir}"
+    else:
+        ssh = SSHClient(host, user)
+        target_repo = f"ssh://{user}@{host}:{target_dir}"
+
+    # create folder and make sure it exists
+    ret = ssh.exec(f"mkdir -p {target_dir}; exit 0")
+    if not ssh.is_path(target_dir):
+        raise Exception(
+            f"Target directory {target_dir} not properly created on {host} with user {user}\n\n" + ret.stdout
+        )
+
+    target_git = os.path.join(target_dir, ".git")
+    if ssh.is_path(target_git):
         raise Exception(
             f"Git repo {target_dir} already initialised. Cleanup folder or skip initialisation."
         )
     else:
         commands = [
             "git init",
-            "git config receive.denyCurrentBranch updateInstead",
+            "[ -d .git ] && echo 'init complete' || exit 1",
+            "git config --local receive.denyCurrentBranch updateInstead",
             "touch dummy.txt",
             "git add .",
             "git commit -am 'first commit'",
+            "exit 0",
         ]
         ssh.exec(commands, dir=target_dir)
-        if remote:
-            try:
-                remote_cmds = [
-                    f"git remote add origin {remote}",
-                    f"git push {push_options} -u origin master",
-                ]
-                ssh.exec(remote_cmds, dir=target_dir)
-            except Exception:
-                raise Exception(
-                    f"Could not push first commit to backup repository {remote}! Please check the repository is empty."
-                )
+        if not ssh.is_path(os.path.join(target_dir, ".git")):
+            raise Exception(
+                f"Target directory {target_dir} not properly created on {host} with user {user}"
+            )
+
+        # making sure we can clone the repository
+        if not ssh.is_path(target_git):
+            print(f'Target directory {target_dir} not properaly created on {host} with user {user}')
+            raise Exception(ret.stdout)
+
+        with tempfile.TemporaryDirectory() as tmp_repo:
+            repo = git.Repo.clone_from(target_repo, tmp_repo)
+
+            if remote:
+                try:
+                    repo.create_remote("backup", url=remote)
+                    remote_repo = repo.remotes["backup"]
+                    try:
+                        remote_repo.push(force=force).raise_if_error()
+                    except git.exc.GitCommandError:
+                        raise git.exc.GitCommandError(
+                            f"Could not push changes to remote repository {remote}.\n"
+                            + "Check configuration and states of remote repository!"
+                        )
+                except Exception:
+                    raise Exception(
+                        f"Could not push first commit to backup repository {remote}! "
+                        + "Please check the repository is empty."
+                    )
 
 
 def main(args=None):
@@ -146,9 +189,9 @@ def main(args=None):
     )
     args = parser.parse_args()
 
-    push_options = ""
+    force = False
     if args.backup and args.force and not args.no_prompt:
-        push_options += "-f"
+        force = True
         check = input(
             "You are about to force push to the remote repository. Are you sure? (Y/n)"
         )
@@ -160,9 +203,9 @@ def main(args=None):
     print(f"    - user: {args.user}")
     print(f"    - target: {args.target}")
     print(f"    - backup: {args.backup}")
-    print(f"    - push_options: {push_options}")
+    print(f"    - force push: {force}")
 
-    setup_remote(args.host, args.user, args.target, args.backup, push_options)
+    setup_remote(args.host, args.user, args.target, args.backup, force)
 
 
 if __name__ == "__main__":
