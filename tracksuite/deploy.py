@@ -2,6 +2,7 @@ import argparse
 import os
 import tempfile
 from filecmp import dircmp
+import logging as log
 
 import git
 
@@ -62,12 +63,12 @@ class GitDeployment:
 
         # get the name of the default branch
         self.default_branch = self.repo.active_branch.name
-        print("branch", self.default_branch)
+        log.debug("default branch: ", self.default_branch)
 
         # add refspec if not there
         if not self.repo.remotes['target'].refs:
             refspec=f"refs/heads/{self.default_branch}:refs/remotes/target/{self.default_branch}"
-            self.repo.remote.fetch(refspec)
+            self.repo.remotes['target'].fetch(refspec)
 
         # link with backup repo
         self.backup_repo = backup_repo
