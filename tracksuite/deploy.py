@@ -62,6 +62,12 @@ class GitDeployment:
 
         # get the name of the default branch
         self.default_branch = self.repo.active_branch.name
+        print("branch", self.default_branch)
+
+        # add refspec if not there
+        if not self.repo.remotes['target'].refs:
+            refspec=f"refs/heads/{self.default_branch}:refs/remotes/target/{self.default_branch}"
+            self.repo.remote.fetch(refspec)
 
         # link with backup repo
         self.backup_repo = backup_repo
