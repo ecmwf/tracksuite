@@ -104,6 +104,7 @@ def test_setup_remote():
         assert os.path.exists(os.path.join(remote_path, ".git"))
 
         repo = git.Repo(remote_path)
+        print(repo.heads)
         branch = repo.heads[0]
         assert "first commit" in branch.commit.message
 
