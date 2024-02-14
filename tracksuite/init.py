@@ -83,8 +83,8 @@ class LocalHostClient(Client):
         assert host == "localhost"
         if user != os.getenv("USER"):
             raise ValueError(
-                "Localhost user cannot be different than executing user. "+
-                "To deploy with a different user, use a different host."
+                "Localhost user cannot be different than executing user. "
+                + "To deploy with a different user, use a different host."
             )
 
         super().__init__(host, user)
