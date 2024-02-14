@@ -53,10 +53,11 @@ class SSHClient(Client):
     def is_path(self, path):
         # Build the ssh command
         cmd = [f"[ -d {path} ] && exit 0 || exit 1"]
+        ret = self.exec(cmd)
         try:
             ret = self.exec(cmd)
             return ret.returncode == 0
-        except:
+        except Exception:
             return False
 
     def exec(self, commands, dir=None):
@@ -68,6 +69,7 @@ class SSHClient(Client):
             ssh_command += f"cd {dir}; "
         for cmd in commands:
             ssh_command += f"{cmd}; "
+        ssh_command = ssh_command + '"'
         value = run_cmd(ssh_command)
         return value
 
@@ -79,6 +81,12 @@ class LocalHostClient(Client):
 
     def __init__(self, host, user):
         assert host == "localhost"
+        if user != os.getenv("USER"):
+            raise ValueError(
+                "Localhost user cannot be different than executing user. "+
+                "To deploy with a different user, use a different host."
+            )
+
         super().__init__(host, user)
 
     def is_path(self, path):
@@ -124,7 +132,8 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
     ret = ssh.exec(f"mkdir -p {target_dir}; exit 0")
     if not ssh.is_path(target_dir):
         raise Exception(
-            f"Target directory {target_dir} not properly created on {host} with user {user}\n\n" + ret.stdout
+            f"Target directory {target_dir} not properly created on {host} with user {user}\n\n"
+            + ret.stdout
         )
 
     target_git = os.path.join(target_dir, ".git")
@@ -150,7 +159,9 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
 
         # making sure we can clone the repository
         if not ssh.is_path(target_git):
-            print(f'Target directory {target_dir} not properaly created on {host} with user {user}')
+            print(
+                f"Target directory {target_dir} not properaly created on {host} with user {user}"
+            )
             raise Exception(ret.stdout)
 
         with tempfile.TemporaryDirectory() as tmp_repo:
