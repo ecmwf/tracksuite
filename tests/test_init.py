@@ -1,5 +1,6 @@
 import os
 import tempfile
+import time
 from unittest.mock import patch
 
 import git
@@ -102,7 +103,9 @@ def test_setup_remote():
         )
         assert os.path.exists(remote_path)
         assert os.path.exists(os.path.join(remote_path, ".git"))
-        
+
+        time.sleep(2)
+
         print(os.listdir(os.path.join(remote_path, ".git")))
         repo = git.Repo(remote_path)
         print(repo.heads)
