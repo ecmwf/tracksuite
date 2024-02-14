@@ -104,13 +104,18 @@ def test_setup_remote():
         assert os.path.exists(remote_path)
         assert os.path.exists(os.path.join(remote_path, ".git"))
 
-        time.sleep(2)
-
-        print(os.listdir(os.path.join(remote_path, ".git")))
         repo = git.Repo(remote_path)
-        print(repo.heads)
-        branch = repo.heads[0]
-        assert "first commit" in branch.commit.message
+        commit_history = repo.iter_commits()
+        for commit in commit_history:
+            assert "first commit" in commit.message
+            print(commit.message)
+        # time.sleep(2)
+
+        # print(os.listdir(os.path.join(remote_path, ".git")))
+        # repo = git.Repo(remote_path)
+        # print(repo.heads)
+        # branch = repo.heads[0]
+        # assert "first commit" in branch.commit.message
 
 
 def test_setup_remote_with_backup():
