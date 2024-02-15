@@ -118,6 +118,9 @@ def test_setup_remote():
         print(repo.untracked_files)
         print(repo.working_dir)
         print(repo.working_tree_dir)
+        print(repo.git.log())
+        print(repo.git.branch())
+        print(repo.git.status())
         commit_history = repo.iter_commits()
         for commit in commit_history:
             print(commit.message)
