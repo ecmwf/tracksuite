@@ -35,6 +35,7 @@ def run_cmd(cmd, timeout=300, **kwargs):
         exc.returncode = -1
         raise CmdError("timeout", exc)
     except subprocess.CalledProcessError as exc:
+        exc.output = str(exc)
         raise CmdError("error", exc)
     except Exception as exc:
         exc.returncode = 99
