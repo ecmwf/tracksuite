@@ -105,27 +105,10 @@ def test_setup_remote():
         assert os.path.exists(os.path.join(remote_path, "dummy.txt"))
 
         repo = git.Repo(remote_path)
-        print(repo)
-        print(repo.head)
-        print(repo.heads)
-        print(repo.branches)
-        print(repo.index)
-        print(repo.git_dir)
-        print(repo.re_envvars)
-        print(repo.references)
-        print(repo.refs)
-        print(repo.unsafe_git_clone_options)
-        print(repo.untracked_files)
-        print(repo.working_dir)
-        print(repo.working_tree_dir)
-        print(repo.git.log())
-        print(repo.git.branch())
-        print(repo.git.status())
         commit_history = repo.iter_commits()
         for commit in commit_history:
             print(commit.message)
             assert "first commit" in commit.message
-        assert False
 
 
 def test_setup_remote_with_backup():

@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      - run: git config --global user.email "dummy.user@ecmwf.int"
+      - run: git config --global user.email "dummy.user@dummy.com"
       - run: git config --global user.name "Dummy User"
       - run: python -m pip install .[test]
       - run: mkdir git_test; cd git_test; git init; touch test.txt; git add .; git commit -am 'dummy commit'; git log; git branch -v
