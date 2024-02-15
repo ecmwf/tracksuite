@@ -93,7 +93,8 @@ def test_setup_remote():
 
     with tempfile.TemporaryDirectory() as temp_dir:
 
-        remote_path = os.path.join(temp_dir, "remote")
+        # remote_path = os.path.join(temp_dir, "remote")
+        remote_path = "remote"
         current_user = os.getenv("USER")
         setup_remote(
             host="localhost",
