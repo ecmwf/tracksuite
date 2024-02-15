@@ -93,8 +93,7 @@ def test_setup_remote():
 
     with tempfile.TemporaryDirectory() as temp_dir:
 
-        # remote_path = os.path.join(temp_dir, "remote")
-        remote_path = "remote"
+        remote_path = os.path.join(temp_dir, "remote")
         current_user = os.getenv("USER")
         setup_remote(
             host="localhost",
@@ -105,7 +104,9 @@ def test_setup_remote():
         assert os.path.exists(os.path.join(remote_path, ".git"))
         assert os.path.exists(os.path.join(remote_path, "dummy.txt"))
 
-        repo = git.Repo(remote_path)
+        test_path = os.path.join(temp_dir, "test")
+        repo = git.Repo.clone_from(remote_path, test_path)
+        # repo = git.Repo(remote_path)
         commit_history = repo.iter_commits()
         for commit in commit_history:
             print(commit.message)
@@ -129,6 +130,7 @@ def test_setup_remote_with_backup():
         )
         assert os.path.exists(remote_path)
         assert os.path.exists(os.path.join(remote_path, ".git"))
+        assert os.path.exists(os.path.join(remote_path, "dummy.txt"))
 
         commit_history = repo.iter_commits()
         for commit in commit_history:
