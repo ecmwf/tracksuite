@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracksuite"
-version = "0.3.1"
+version = "0.3.2"
 description = "ecflow suite tracking and deploying toolkit"
 authors = [
   { name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int" },
