@@ -1,13 +1,41 @@
 [build-system]
-# NOTE: `pip install build` to build with `python -m build`
-requires = [
-  "setuptools >= 40.9.0",
-  "wheel"
-]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.pytest.ini_options]
-addopts = ""
-doctest_optionflags = ""
-testpaths = "tests"
-markers = []
+[project]
+name = "tracksuite"
+version = "0.3.1"
+description = "ecflow suite tracking and deploying toolkit"
+authors = [
+  { name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int" },
+  { name = "Corentin Carton de Wiart", email = "corentin.carton@ecmwf.int" },
+]
+license = { text = "Apache License Version 2.0" }
+requires-python = ">=3.8"
+readme = "README.md"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: Unix",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering",
+]
+
+dependencies = [
+    "gitpython >= 3.1.25"
+]
+
+[project.optional-dependencies]
+test = ["pytest", "mocker", "pytest-mock"]
+
+[project.urls]
+"Source code" = "https://github.com/ecmwf/tracksuite"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests"]
+
+[project.scripts]
+    tracksuite-init = "tracksuite.init:main"
+    tracksuite-deploy = "tracksuite.deploy:main"
