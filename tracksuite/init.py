@@ -53,7 +53,6 @@ class SSHClient(Client):
     def is_path(self, path):
         # Build the ssh command
         cmd = [f"[ -d {path} ] && exit 0 || exit 1"]
-        ret = self.exec(cmd)
         try:
             ret = self.exec(cmd)
             return ret.returncode == 0
