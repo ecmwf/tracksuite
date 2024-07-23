@@ -1,10 +1,9 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracksuite"
-version = "0.3.3"
 description = "ecflow suite tracking and deploying toolkit"
 authors = [
   { name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int" },
@@ -12,7 +11,6 @@ authors = [
 ]
 license = { text = "Apache License Version 2.0" }
 requires-python = ">=3.8"
-readme = "README.md"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
@@ -21,6 +19,7 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Topic :: Scientific/Engineering",
 ]
+dynamic = ["version", "readme"]
 
 dependencies = [
     "gitpython >= 3.1.25"
@@ -32,6 +31,9 @@ test = ["pytest", "mocker", "pytest-mock"]
 [project.urls]
 "Source code" = "https://github.com/ecmwf/tracksuite"
 
+[tool.setuptools.dynamic]
+readme = {file = ["README.md"], content-type = "text/markdown"}
+
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["tests"]
@@ -39,3 +41,12 @@ exclude = ["tests"]
 [project.scripts]
     tracksuite-init = "tracksuite.init:main"
     tracksuite-deploy = "tracksuite.deploy:main"
+
+[tool.setuptools_scm]
+write_to = "tracksuite/_version.py"
+write_to_template = '''
+# Do not change! Do not track in version control!
+__version__ = "{version}"
+'''
+parentdir_prefix_version='tracksuite-'  # get version from GitHub-like tarballs
+fallback_version='0.3.3'
