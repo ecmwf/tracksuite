@@ -2,6 +2,7 @@
 
 from .deploy import GitDeployment
 from .init import setup_remote
+from .revert import revert_to_n_commit
 
 try:
     # NOTE: the `_version.py` file must not be present in the git repository
