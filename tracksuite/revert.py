@@ -21,13 +21,29 @@ def revert_to_n_commit(git_url, n_state):
     if n_state > len(commits):
         raise Exception(f"The repository has only {len(commits)} commits. Cannot revert to {n_state} states back.")
     
-    target_commit = commits[n_state - 1]  # n_state counts back from the latest commit
-    print(f"Reverting changes after commit: {target_commit.hexsha} - {target_commit.message}")
+    target_commit = commits[n_state]  # n_state counts back from the latest commit
+    print(f"Reverting changes to commit: {target_commit.hexsha}")
+    print(f"Commit message: \n {target_commit.message}")
     
     # Revert changes since the target commit
     repo.git.revert(f'{target_commit.hexsha}..HEAD', no_commit=True)
-    repo.index.commit(f"Reverted repository to {n_state} commits back (reverting changes after {target_commit.hexsha})")
+    repo.index.commit(f"Reverted repository to {n_state} commits back (reverting to commit {target_commit.hexsha})")
+
+    check = input(
+        f"You are about to revert the git repository to the above previous commit ({n_state} commits back). Are you sure? (y/N)"
+    )
+    if check != "y":
+        exit(1)
     
+    remote_repo = repo.remotes["origin"]
+    try:
+        remote_repo.push().raise_if_error()
+    except git.exc.GitCommandError:
+        raise git.exc.GitCommandError(
+            f"Could not push changes to remote repository {git_url}. "
+            + "Check configuration and the state of the remote repository! "
+            + "The remote repository might have uncommited changes."
+        )
     print(f"Repository reverted with a new commit that undoes changes since {n_state} commits back.")
 
 
