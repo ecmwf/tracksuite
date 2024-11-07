@@ -11,7 +11,6 @@ class GitRepositories:
         target_repo=None,
         backup_repo=None,
         local_repo=None,
-        depth=1,
     ):
         """
         Class used to deploy suites through git.
@@ -19,10 +18,9 @@ class GitRepositories:
         Parameters:
             host(str): The target host.
             user(str): The deploying user.
-            staging_dir(str): The source suite directory.
-            local_repo(str): Path to the local repository.
             target_repo(str): Path to the target repository on the target host.
             backup_repo(str): URL of the backup repository.
+            local_repo(str): Path to the local repository.
         """
 
         self.deploy_user = os.getenv("USER")
@@ -50,7 +48,7 @@ class GitRepositories:
             self.repo = git.Repo(local_repo)
         except (git.exc.NoSuchPathError, git.exc.InvalidGitRepositoryError):
             print(f"    -> Cloning from {self.target_repo}")
-            self.repo = git.Repo.clone_from(self.target_repo, local_repo, depth=depth)
+            self.repo = git.Repo.clone_from(self.target_repo, local_repo)
             self.repo.remotes["origin"].rename("target")
 
         # get the name of the default branch

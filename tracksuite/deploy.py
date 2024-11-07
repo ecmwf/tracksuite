@@ -35,7 +35,6 @@ class GitDeployment(GitRepositories):
             target_repo=target_repo,
             backup_repo=backup_repo,
             local_repo=local_repo,
-            depth=1,
         )
 
         self.staging_dir = staging_dir

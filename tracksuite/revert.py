@@ -32,7 +32,6 @@ class GitRevert(GitRepositories):
             target_repo=target_repo,
             backup_repo=backup_repo,
             local_repo=local_repo,
-            depth=None,
         )
 
     def revert(self, n_state, message=None):
