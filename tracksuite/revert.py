@@ -1,69 +1,114 @@
-import os
 import argparse
-import tempfile
-import git
+import os
+
+from .repos import GitRepositories
 
 
-def revert_to_n_commit(git_url, n_state):
-    # repo_name = Path(git_url).stem
-    clone_path = tempfile.mkdtemp(prefix="suite_")
-    
-    # Clone the repository if it doesn't already exist
-    print(f"Cloning repository from {git_url}...")
-    repo = git.Repo.clone_from(git_url, clone_path)
-    
-    # Check if the repository is clean
-    if repo.is_dirty():
-        raise Exception("The repository has uncommitted changes. Stash or commit them before reverting.")
-    
-    # Get the commit history and select the target commit
-    commits = list(repo.iter_commits())
-    if n_state > len(commits):
-        raise Exception(f"The repository has only {len(commits)} commits. Cannot revert to {n_state} states back.")
-    
-    target_commit = commits[n_state]  # n_state counts back from the latest commit
-    print(f"Reverting changes to commit: {target_commit.hexsha}")
-    print(f"Commit message: \n {target_commit.message}")
-    
-    # Revert changes since the target commit
-    repo.git.revert(f'{target_commit.hexsha}..HEAD', no_commit=True)
-    repo.index.commit(f"Reverted repository to {n_state} commits back (reverting to commit {target_commit.hexsha})")
+class GitRevert(GitRepositories):
+    def __init__(
+        self,
+        target_repo,
+        host=None,
+        user=None,
+        backup_repo=None,
+        local_repo=None,
+    ):
+        """
+        Class used to revert git repositories to a previous state.
 
-    check = input(
-        f"You are about to revert the git repository to the above previous commit ({n_state} commits back). Are you sure? (y/N)"
-    )
-    if check != "y":
-        exit(1)
-    
-    remote_repo = repo.remotes["origin"]
-    try:
-        remote_repo.push().raise_if_error()
-    except git.exc.GitCommandError:
-        raise git.exc.GitCommandError(
-            f"Could not push changes to remote repository {git_url}. "
-            + "Check configuration and the state of the remote repository! "
-            + "The remote repository might have uncommited changes."
+        Parameters:
+            target_repo(str): Path to the target repository on the target host.
+            n_state(int): Number of states to revert
+            host(str): The target host.
+            user(str): The deploying user.
+            backup_repo(str): URL of the backup repository.
+            local_repo(str): Path to the local repository.
+        """
+
+        print("Creating reverter:")
+        super().__init__(
+            host=host,
+            user=user,
+            target_repo=target_repo,
+            backup_repo=backup_repo,
+            local_repo=local_repo,
+            depth=None,
         )
-    print(f"Repository reverted with a new commit that undoes changes since {n_state} commits back.")
+
+    def revert(self, n_state, message=None):
+        """
+        Revert a git repository to a previous state by creating a new commit that undoes changes since the target commit.
+        """
+
+        # Get the commit history and select the target commit
+        commits = list(self.repo.iter_commits())
+        if n_state > len(commits):
+            raise Exception(
+                f"The repository has only {len(commits)} commits. Cannot revert to {n_state} states back."
+            )
+
+        target_commit = commits[n_state]  # n_state counts back from the latest commit
+        print(f"    -> Reverting changes to commit: {target_commit.hexsha}")
+        print(f"    -> Commit message: \n {target_commit.message}")
+
+        # Revert changes since the target commit
+        self.repo.git.revert(f"{target_commit.hexsha}..HEAD", no_commit=True)
+        commit_message = f"Revert changes since {n_state} commits back (reverting to commit {target_commit.hexsha})."
+        if message is not None:
+            commit_message += f"\n{message}"
+        self.repo.index.commit(commit_message)
 
 
 def main(args=None):
-    description = "Revert a git repository to a previous state by creating a new commit that undoes changes since the target commit."
+    description = "Revert a git repository to a previous state."
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("git_url", help="URL of the git repository to revert")
+    parser.add_argument("target", help="Path to target git repository on host")
     parser.add_argument("n_state", type=int, help="Number of states to revert back")
+    parser.add_argument("--host", default="localhost", help="Target host")
+    parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
+    parser.add_argument("--message", help="Git message")
+    parser.add_argument("--backup", help="URL to backup git repository")
     parser.add_argument(
         "--no_prompt",
         action="store_true",
         help="No prompt, --force will go through without user input",
     )
+
     args = parser.parse_args()
 
     print("Revert options:")
-    print(f"    - git_url: {args.git_url}")
-    print(f"    - n_state: {args.n_state}")
+    print(f"    - target repo: {args.target}")
+    print(f"    - number of commits to revert to: {args.n_state}")
+    print(f"    - host: {args.host}")
+    print(f"    - user: {args.user}")
+    print(f"    - backup repo: {args.backup}")
+    print(f"    - git message: {args.message}")
 
-    revert_to_n_commit(args.git_url, args.n_state)
+    reverter = GitRevert(
+        args.target,
+        host=args.host,
+        user=args.user,
+        backup_repo=args.backup,
+    )
+    print("Reverting git repository to a previous state")
+    hash_init = reverter.check_repos()
+
+    reverter.revert(args.n_state, args.message)
+
+    if not args.no_prompt:
+        check = input(
+            f"You are about to revert the git repository to the above previous commit ({args.n_state} commits back). Are you sure? (y/N)"  # noqa: E501
+        )
+        if check != "y":
+            exit(1)
+
+    reverter.check_state_remote(hash_init, "target")
+    reverter.push_to_remotes()
+
+    print(
+        f"Repository reverted with a new commit that undoes changes since {args.n_state} commits back."
+    )
+
 
 if __name__ == "__main__":
     main()
