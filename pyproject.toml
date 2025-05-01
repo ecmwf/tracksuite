@@ -41,6 +41,7 @@ exclude = ["tests"]
 [project.scripts]
     tracksuite-init = "tracksuite.init:main"
     tracksuite-deploy = "tracksuite.deploy:main"
+    tracksuite-revert = "tracksuite.revert:main"
 
 [tool.setuptools_scm]
 write_to = "tracksuite/_version.py"

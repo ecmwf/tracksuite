@@ -170,7 +170,6 @@ class GitRepositories:
         """
         Push the changes to the remote repository.
         """
-
         log.info(f"    -> Git push to {self.target_repo}")
         self.push("target")
         if self.backup_repo:
@@ -190,7 +189,6 @@ class GitRepositories:
         Check if the repository is clean and if the local and remote repositories are in sync.
         Returns the hash of the initial state.
         """
-
         log.info("    -> Checking that git repos are in sync")
         # Check if the repository is clean
         if self.repo.is_dirty():

@@ -46,5 +46,23 @@ To stage and deploy a suite:
     --push             Push staged suite to target
     --message MESSAGE  Git message
 
+To revert the suite to a previous state:
+
+    usage: tracksuite-revert [-h] [--host HOST] [--user USER] [--message MESSAGE] [--backup BACKUP] [--no_prompt] target n_state
+
+    Revert a git repository to a previous state.
+
+    positional arguments:
+    target             Path to target git repository on host
+    n_state            Number of states to revert back
+
+    options:
+    -h, --help         show this help message and exit
+    --host HOST        Target host
+    --user USER        Deploy user
+    --message MESSAGE  Git message
+    --backup BACKUP    URL to backup git repository
+    --no_prompt        No prompt, --force will go through without user input
+
 ## Overview
 ![](workflow.png)
