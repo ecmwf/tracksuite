@@ -79,7 +79,7 @@ def update_definition_from_server(args):
 
 
 def main(args=None):
-    description = "Update suite definition on target"
+    description = "Update suite definition on target from server"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
         "--target", required=True, help="Path to target git repository on host"
@@ -88,7 +88,6 @@ def main(args=None):
     parser.add_argument("--backup", help="URL to backup git repository")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
-    parser.add_argument("--server", required=True, help="Ecflow server")
     parser.add_argument("--port", required=True, help="Ecflow port")
     parser.add_argument("--name", required=True, help="Ecflow suite name")
 
