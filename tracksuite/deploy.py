@@ -2,6 +2,7 @@ import argparse
 import os
 import tempfile
 from filecmp import dircmp
+import logging as log
 
 import git
 
@@ -30,11 +31,22 @@ class GitDeployment:
             backup_repo(str): URL of the backup repository.
         """
 
+<<<<<<< Updated upstream
         print("Creating deployer:")
         self.deploy_user = os.getenv("USER")
         self.deploy_host = os.getenv("HOSTNAME")
         self.user = self.deploy_user if user is None else user
         self.host = self.deploy_host if host is None else host
+=======
+        log.info("Creating deployer:")
+        super().__init__(
+            host=host,
+            user=user,
+            target_repo=target_repo,
+            backup_repo=backup_repo,
+            local_repo=local_repo,
+        )
+>>>>>>> Stashed changes
 
         self.staging_dir = staging_dir
         if self.staging_dir is None:
@@ -155,7 +167,7 @@ class GitDeployment:
             else:
                 return False
         except Exception as e:
-            print("Commit failed!")
+            log.info("Commit failed!")
             raise e
         return True
 
@@ -226,7 +238,7 @@ class GitDeployment:
                 get_diff_files(sub_dcmp, root=os.path.join(root, dir))
 
         diff = dircmp(self.staging_dir, self.local_dir)
-        print("Changes in staged suite:")
+        log.info("Changes in staged suite:")
         get_diff_files(diff)
         changes = [
             ("Removed", removed),
@@ -235,12 +247,12 @@ class GitDeployment:
         ]
         for name, files in changes:
             if files:
-                print(f"    - {name}:")
+                log.info(f"    - {name}:")
                 for path in files:
-                    print(f"        - {path}")
-        print("For more details, compare the following folders:")
-        print(self.staging_dir)
-        print(self.local_dir)
+                    log.info(f"        - {path}")
+        log.info("For more details, compare the following folders:")
+        log.info(self.staging_dir)
+        log.info(self.local_dir)
 
     def deploy(self, message=None, files=None):
         """
@@ -256,27 +268,27 @@ class GitDeployment:
         Parameters:
             message(str): optional git commit message to append to default message.
         """
-        print("Deploying suite to remote locations")
+        log.info("Deploying suite to remote locations")
         # check if repos are in sync
-        print("    -> Checking that git repos are in sync")
+        log.info("    -> Checking that git repos are in sync")
         hash_init = self.check_sync_local_remote("target")
         if self.backup_repo:
             self.check_sync_local_remote("backup")
             self.check_sync_remotes("target", "backup")
 
         # rsync staging folder to current repo
-        print("    -> Staging suite")
+        log.info("    -> Staging suite")
 
         rsync_options = "-avzc --delete  --exclude .git "
         cmd = f"rsync {rsync_options} {self.staging_dir}/ {self.local_dir}/"
         run_cmd(cmd)
 
         # git commit and push to remotes
-        print("    -> Git commit")
+        log.info("    -> Git commit")
         if not self.commit(message, files):
-            print("Nothing to commit... aborting")
+            log.info("Nothing to commit... aborting")
             return False
-        print(f"    -> Git push to target {self.target_repo} on host {self.host}")
+        log.info(f"    -> Git push to target {self.target_repo} on host {self.host}")
 
         hash_check = self.get_hash_remote("target")
         if hash_check != hash_init:
@@ -287,7 +299,7 @@ class GitDeployment:
 
         self.push("target")
         if self.backup_repo:
-            print(f"    -> Git push to backup repository {self.backup_repo}")
+            log.info(f"    -> Git push to backup repository {self.backup_repo}")
             self.push("backup")
 
         return True
@@ -334,15 +346,15 @@ def main(args=None):
 
     args = parser.parse_args()
 
-    print("Initialisation options:")
-    print(f"    - host: {args.host}")
-    print(f"    - user: {args.user}")
-    print(f"    - staged suite: {args.stage}")
-    print(f"    - local repo: {args.local}")
-    print(f"    - target repo: {args.target}")
-    print(f"    - backup repo: {args.backup}")
-    print(f"    - git message: {args.message}")
-    print(f"    - files to deploy: {args.files}")
+    log.info("Initialisation options:")
+    log.info(f"    - host: {args.host}")
+    log.info(f"    - user: {args.user}")
+    log.info(f"    - staged suite: {args.stage}")
+    log.info(f"    - local repo: {args.local}")
+    log.info(f"    - target repo: {args.target}")
+    log.info(f"    - backup repo: {args.backup}")
+    log.info(f"    - git message: {args.message}")
+    log.info(f"    - files to deploy: {args.files}")
 
     deployer = GitDeployment(
         host=args.host,
@@ -358,9 +370,9 @@ def main(args=None):
 
     if args.push:
         if args.files is not None:
-            print("Deploying only the following files:")
+            log.info("Deploying only the following files:")
             for f in args.files:
-                print(f"    - {f}")
+                log.info(f"    - {f}")
 
         check = input(
             "You are about to push the staged suite to the target directory. Are you sure? (y/N)"
