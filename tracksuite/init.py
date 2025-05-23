@@ -107,6 +107,7 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
     """
     Setup target and remote repositories.
     Steps:
+    
         - SSH to host, creates the git repository on target_dir
         - Create first dummy commit
         - (optional) git push to remote backup repository

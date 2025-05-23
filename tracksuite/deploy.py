@@ -137,7 +137,7 @@ class GitDeployment:
         Commits the current stage of the local repository.
         Throws exception if there is nothing to commit.
         Default commit message will be:
-            "deployed by {user} from {host}:{staging_dir}"
+        "deployed by {user} from {host}:{staging_dir}"
 
         Parameters:
             message(str): optional git commit message to append to default message
@@ -246,12 +246,14 @@ class GitDeployment:
         """
         Deploy the staged suite to the target repository.
         Steps:
+
             - git fetch remote repositories and check they are in sync
             - rsync the staged folder to the local repository
             - git add all the suite files and commit
             - git push to remotes
+        
         Default commit message will be:
-            "deployed by {user} from {host}:{staging_dir}"
+        "deployed by {user} from {host}:{staging_dir}"
 
         Parameters:
             message(str): optional git commit message to append to default message.
@@ -296,6 +298,7 @@ class GitDeployment:
         """
         Sync the remote repositories.
         Steps:
+        
             - git fetch remote repositories and check they are in sync
             - git push to backup if needed
         """
