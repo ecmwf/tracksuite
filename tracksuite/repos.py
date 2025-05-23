@@ -202,3 +202,30 @@ class GitRepositories:
             self.check_sync_remotes("target", "backup")
 
         return hash_init
+
+    def commit(self, message=None, files=None):
+        """
+        Commits the current stage of the local repository.
+        Throws exception if there is nothing to commit.
+        Default commit message will be:
+            "deployed by {user} from {host}:{staging_dir}"
+
+        Parameters:
+            message(str): optional git commit message to append to default message
+        """
+        if files is None:
+            files = "--all"
+        try:
+            commit_message = f"deployed by {self.deploy_user} from {self.deploy_host}\n"
+            if message:
+                commit_message += message
+            self.repo.git.add(files)
+            diff = self.repo.index.diff(self.repo.commit())
+            if diff:
+                self.repo.index.commit(commit_message)
+            else:
+                return False
+        except Exception as e:
+            log.info("Commit failed!")
+            raise e
+        return True

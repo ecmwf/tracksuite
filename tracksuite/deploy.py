@@ -3,8 +3,8 @@ import os
 from filecmp import dircmp
 import logging as log
 
-from .repos import GitRepositories
-from .utils import run_cmd
+from tracksuite.repos import GitRepositories
+from tracksuite.utils import run_cmd
 
 
 class GitDeployment(GitRepositories):

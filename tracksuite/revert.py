@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from .repos import GitRepositories
+from tracksuite.repos import GitRepositories
 
 
 class GitRevert(GitRepositories):

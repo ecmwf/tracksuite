@@ -2,27 +2,8 @@ import argparse
 import os
 import logging as log
 
-import ecflow
-
-from .repos import GitRepositories
-
-
-def get_suite_definition(client, name):
-    """
-    Get the suite definition from the server.
-    """
-    client.sync_local()
-    defs = client.get_defs()
-    suite = defs.find_suite(name)
-    return suite
-
-
-def save_definition(suite, filename):
-    """
-    Save the suite definition to a file.
-    """
-    with open(filename, "w") as f:
-        f.write(str(suite))
+from tracksuite.repos import GitRepositories
+from tracksuite.ecflow_client import EcflowClient, save_definition
 
 
 def update_definition_from_server(args):
@@ -43,12 +24,16 @@ def update_definition_from_server(args):
         local_repo=args.local,
     )
 
+    def_file = args.def_file
+    if args.def_file is None:
+        def_file = f"{args.name}.def"
+
     # Get the suite definition from the server
-    client = ecflow.Client(args.host, args.user)
-    suite = get_suite_definition(client, args.name)
+    client = EcflowClient(args.host, args.port)
+    suite = client.get_suite(args.name)
 
     # Save the suite definition to a file
-    filename = os.path.join(args.local, f"{args.name}.ecf")
+    filename = os.path.join(deployer.local_dir, def_file)
     save_definition(suite, filename)
 
     deployer.pull_remotes()
@@ -60,10 +45,9 @@ def update_definition_from_server(args):
 
     # Commit the changes to the local repository
     log.info("    -> Git commit")
-    if not deployer.commit(args.message):
+    if not deployer.commit(message="Update suite definition from server"):
         log.info("Nothing to commit... aborting")
         return False
-    deployer.commit(message="Update suite definition from server")
 
     hash_check = deployer.get_hash_remote("target")
     if hash_check != hash_init:
@@ -81,16 +65,20 @@ def update_definition_from_server(args):
 def main(args=None):
     description = "Update suite definition on target from server"
     parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("name", help="Ecflow suite name")
+    parser.add_argument("--def_file", help="Ecflow port")
     parser.add_argument(
         "--target", required=True, help="Path to target git repository on host"
     )
-    parser.add_argument("--local", help="Path to local git repository. DEFAULT: $TMP")
-    parser.add_argument("--backup", help="URL to backup git repository")
+    parser.add_argument("--local", required=True, help="Path to local git repository. DEFAULT: $TMP")
+    parser.add_argument("--backup", required=True, help="URL to backup git repository")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
-    parser.add_argument("--port", required=True, help="Ecflow port")
-    parser.add_argument("--name", required=True, help="Ecflow suite name")
+    parser.add_argument("--port", default=3141, help="Ecflow port")
 
     args = parser.parse_args()
 
     update_definition_from_server(args)
+
+if __name__ == "__main__":
+    main()
