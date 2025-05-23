@@ -68,9 +68,9 @@ class EcflowClient:
         """
         Update the status of a node based on the old node's status.
         This function updates the following attributes on the server:
-            - state
-            - dstate
-            - defstatus
+            - state: queued, running, complete, failed
+            - dstate: suspended or state
+            - defstatus: complete or queued
         """
         node_path = new_node.get_abs_node_path()
         # Update state-related status
@@ -184,8 +184,8 @@ class EcflowClient:
             return False
 
         self.update_node_status(new_node, old_node)
-        # self.update_node_attributes(new_node, old_node)
-        # self.update_node_repeat(new_node, old_node)
+        self.update_node_attributes(new_node, old_node)
+        self.update_node_repeat(new_node, old_node)
 
         # Recurse through children
         for new_child in new_node.nodes:
@@ -197,6 +197,18 @@ class EcflowClient:
                 print(
                     f"Could not find child node {new_child.name()} in old node {node_path}"
                 )
+
+    def replace_on_server(
+        self,
+        node_path: str,
+        definition_file: str,
+        force: bool = False,
+        create_parent_tree: bool = True,
+    ):
+        """
+        Replace the suite definition on the server.
+        """
+        self.client.replace(node_path, definition_file, create_parent_tree, force)
 
 
 def save_definition(suite: ecflow.Node, filename: str):

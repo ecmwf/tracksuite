@@ -24,16 +24,16 @@ def update_definition_from_server(args):
         local_repo=args.local,
     )
 
-    def_file = args.def_file
-    if args.def_file is None:
-        def_file = f"{args.name}.def"
+    definition = args.definition
+    if args.definition is None:
+        definition = f"{args.name}.def"
 
     # Get the suite definition from the server
     client = EcflowClient(args.host, args.port)
     suite = client.get_suite(args.name)
 
     # Save the suite definition to a file
-    filename = os.path.join(deployer.local_dir, def_file)
+    filename = os.path.join(deployer.local_dir, definition)
     save_definition(suite, filename)
 
     deployer.pull_remotes()
@@ -62,11 +62,11 @@ def update_definition_from_server(args):
         deployer.push("backup")
 
 
-def main(args=None):
+def get_parser():
     description = "Update suite definition on target from server"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("name", help="Ecflow suite name")
-    parser.add_argument("--def_file", help="Name of the definition file to update")
+    parser.add_argument("--definition", help="Name of the definition file to update")
     parser.add_argument(
         "--target", required=True, help="Path to target git repository on host"
     )
@@ -77,9 +77,12 @@ def main(args=None):
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
     parser.add_argument("--port", default=3141, help="Ecflow port")
+    return parser
 
+
+def main(args=None):
+    parser = get_parser()
     args = parser.parse_args()
-
     update_definition_from_server(args)
 
 
