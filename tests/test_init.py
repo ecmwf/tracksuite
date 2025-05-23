@@ -25,7 +25,6 @@ def mock_run_cmd_returns_input(mocker):
 
 
 def test_ssh_client_exec(ssh_client, mock_run_cmd_returns_input):
-
     # Execute the method under test
     command_to_execute = ["echo Hello World"]
     result = ssh_client.exec(command_to_execute)
@@ -53,7 +52,6 @@ def mock_run_cmd_returns_true(mocker):
 
 
 def test_ssh_client_is_path(ssh_client, mock_run_cmd_returns_true):
-
     ssh_client = SSHClient("test_host", "test_user")
 
     # Execute the method under test
@@ -90,9 +88,7 @@ def test_localhost_client_is_path():
 
 
 def test_setup_remote():
-
     with tempfile.TemporaryDirectory() as temp_dir:
-
         remote_path = os.path.join(temp_dir, "remote")
         current_user = os.getenv("USER")
         setup_remote(
@@ -112,9 +108,7 @@ def test_setup_remote():
 
 
 def test_setup_remote_with_backup():
-
     with tempfile.TemporaryDirectory() as temp_dir:
-
         repo_path = os.path.join(temp_dir, "my_repo.git")
         repo = git.Repo.init(repo_path, bare=True)
 
@@ -137,9 +131,7 @@ def test_setup_remote_with_backup():
 
 
 def test_setup_remote_with_backup_fail():
-
     with tempfile.TemporaryDirectory() as temp_dir:
-
         repo_path = os.path.join(temp_dir, "my_repo.git")
         repo = git.Repo.init(repo_path, bare=True)
 
@@ -162,9 +154,7 @@ def test_setup_remote_with_backup_fail():
 
 
 def test_setup_remote_with_backup_force():
-
     with tempfile.TemporaryDirectory() as temp_dir:
-
         repo_path = os.path.join(temp_dir, "my_repo.git")
         repo = git.Repo.init(repo_path, bare=True)
 

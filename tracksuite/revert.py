@@ -1,4 +1,5 @@
 import argparse
+import logging as log
 import os
 
 from tracksuite.repos import GitRepositories
@@ -25,7 +26,7 @@ class GitRevert(GitRepositories):
             local_repo(str): Path to the local repository.
         """
 
-        print("Creating reverter:")
+        log.info("Creating reverter:")
         super().__init__(
             host=host,
             user=user,
@@ -36,7 +37,8 @@ class GitRevert(GitRepositories):
 
     def revert(self, n_state, message=None):
         """
-        Revert a git repository to a previous state by creating a new commit that undoes changes since the target commit.
+        Revert a git repository to a previous state by creating a new commit
+        that undoes changes since the target commit.
         """
 
         # Get the commit history and select the target commit
@@ -47,8 +49,8 @@ class GitRevert(GitRepositories):
             )
 
         target_commit = commits[n_state]  # n_state counts back from the latest commit
-        print(f"    -> Reverting changes to commit: {target_commit.hexsha}")
-        print(f"    -> Commit message: \n {target_commit.message}")
+        log.info(f"    -> Reverting changes to commit: {target_commit.hexsha}")
+        log.info(f"    -> Commit message: \n {target_commit.message}")
 
         # Revert changes since the target commit
         self.repo.git.revert(f"{target_commit.hexsha}..HEAD", no_commit=True)
@@ -66,7 +68,7 @@ def main(args=None):
     parser.add_argument("--host", default="localhost", help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
     parser.add_argument("--message", help="Git message")
-    parser.add_argument("--backup", help="URL to backup git repository")
+    parser.add_argument("--backup", help="URL to the backup git repository")
     parser.add_argument(
         "--no_prompt",
         action="store_true",
@@ -75,13 +77,13 @@ def main(args=None):
 
     args = parser.parse_args()
 
-    print("Revert options:")
-    print(f"    - target repo: {args.target}")
-    print(f"    - number of commits to revert to: {args.n_state}")
-    print(f"    - host: {args.host}")
-    print(f"    - user: {args.user}")
-    print(f"    - backup repo: {args.backup}")
-    print(f"    - git message: {args.message}")
+    log.info("Revert options:")
+    log.info(f"    - target repo: {args.target}")
+    log.info(f"    - number of commits to revert to: {args.n_state}")
+    log.info(f"    - host: {args.host}")
+    log.info(f"    - user: {args.user}")
+    log.info(f"    - backup repo: {args.backup}")
+    log.info(f"    - git message: {args.message}")
 
     reverter = GitRevert(
         args.target,
@@ -89,7 +91,7 @@ def main(args=None):
         user=args.user,
         backup_repo=args.backup,
     )
-    print("Reverting git repository to a previous state")
+    log.info("Reverting git repository to a previous state")
     hash_init = reverter.check_repos()
 
     reverter.revert(args.n_state, args.message)
@@ -104,7 +106,7 @@ def main(args=None):
     reverter.check_state_remote(hash_init, "target")
     reverter.push_to_remotes()
 
-    print(
+    log.info(
         f"Repository reverted with a new commit that undoes changes since {args.n_state} commits back."
     )
 

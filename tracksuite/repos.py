@@ -1,8 +1,8 @@
+import logging as log
 import os
 import tempfile
-import git
 
-import logging as log
+import git
 
 
 class GitRepositories:

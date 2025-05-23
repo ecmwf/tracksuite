@@ -3,14 +3,13 @@ import tempfile
 
 import pytest
 
-from tracksuite.revert import GitRevert
 from tracksuite.deploy import GitDeployment
 from tracksuite.init import setup_remote
+from tracksuite.revert import GitRevert
 
 
 @pytest.fixture
 def git_deployment():
-
     temp_dir = tempfile.TemporaryDirectory().name
     staging_dir = os.path.join(temp_dir, "staging")
     target_repo = os.path.join(temp_dir, "target")
@@ -38,7 +37,6 @@ def git_deployment():
 
 
 def test_deploy_default(git_deployment):
-
     deployer, reverter = git_deployment
     staging_dir = deployer.staging_dir
 

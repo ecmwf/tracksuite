@@ -1,4 +1,5 @@
 import argparse
+import logging as log
 import os
 import tempfile
 
@@ -118,7 +119,7 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
         remote(str): The remote backup git repository (optional).
         force(bool): force push to backup.
     """
-    print(f"Creating remote repository {target_dir} on host {host} with user {user}")
+    log.info(f"Creating remote repository {target_dir} on host {host} with user {user}")
     # for test purpose with /tmp folders, stay local with localhost
     if host == "localhost":
         ssh = LocalHostClient(host, user)
@@ -158,7 +159,7 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
 
         # making sure we can clone the repository
         if not ssh.is_path(target_git):
-            print(
+            log.error(
                 f"Target directory {target_dir} not properaly created on {host} with user {user}"
             )
             raise Exception(ret.stdout)
@@ -184,11 +185,11 @@ def setup_remote(host, user, target_dir, remote=None, force=False):
                     )
 
 
-def main(args=None):
+def get_parser():
     description = "Remote suite folder initialisation tool"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--target", required=True, help="Target directory")
-    parser.add_argument("--backup", help="Backup git repository")
+    parser.add_argument("--backup", help="URL to the backup git repository")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
     parser.add_argument("--force", action="store_true", help="Force push to remote")
@@ -197,6 +198,11 @@ def main(args=None):
         action="store_true",
         help="No prompt, --force will go through without user input",
     )
+    return parser
+
+
+def main(args=None):
+    parser = get_parser()
     args = parser.parse_args()
 
     force = False
@@ -208,12 +214,12 @@ def main(args=None):
         if check != "Y":
             exit(1)
 
-    print("Initialisation options:")
-    print(f"    - host: {args.host}")
-    print(f"    - user: {args.user}")
-    print(f"    - target: {args.target}")
-    print(f"    - backup: {args.backup}")
-    print(f"    - force push: {force}")
+    log.info("Initialisation options:")
+    log.info(f"    - host: {args.host}")
+    log.info(f"    - user: {args.user}")
+    log.info(f"    - target: {args.target}")
+    log.info(f"    - backup: {args.backup}")
+    log.info(f"    - force push: {force}")
 
     setup_remote(args.host, args.user, args.target, args.backup, force)
 

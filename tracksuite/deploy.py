@@ -1,7 +1,7 @@
 import argparse
+import logging as log
 import os
 from filecmp import dircmp
-import logging as log
 
 from tracksuite.repos import GitRepositories
 from tracksuite.utils import run_cmd
@@ -174,7 +174,7 @@ class GitDeployment(GitRepositories):
         return True
 
 
-def main(args=None):
+def get_parser():
     description = "Suite deployment tool"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--stage", required=True, help="Staged suite")
@@ -185,7 +185,7 @@ def main(args=None):
         "--local",
         help="Path to local git repository (will be created if doesn't exist)",
     )
-    parser.add_argument("--backup", help="URL to backup git repository")
+    parser.add_argument("--backup", help="URL to the backup git repository")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
     parser.add_argument("--message", help="Git message")
@@ -198,7 +198,11 @@ def main(args=None):
         nargs="+",
         help="Specific files to deploy, by default everything is deployed",
     )
+    return parser
 
+
+def main(args=None):
+    parser = get_parser()
     args = parser.parse_args()
 
     log.info("Initialisation options:")

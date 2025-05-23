@@ -1,9 +1,9 @@
 import argparse
-import os
 import logging as log
+import os
 
-from tracksuite.repos import GitRepositories
 from tracksuite.ecflow_client import EcflowClient, save_definition
+from tracksuite.repos import GitRepositories
 
 
 def update_definition_from_server(args):
@@ -66,11 +66,13 @@ def main(args=None):
     description = "Update suite definition on target from server"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("name", help="Ecflow suite name")
-    parser.add_argument("--def_file", help="Ecflow port")
+    parser.add_argument("--def_file", help="Name of the definition file to update")
     parser.add_argument(
         "--target", required=True, help="Path to target git repository on host"
     )
-    parser.add_argument("--local", required=True, help="Path to local git repository. DEFAULT: $TMP")
+    parser.add_argument(
+        "--local", required=True, help="Path to local git repository. DEFAULT: $TMP"
+    )
     parser.add_argument("--backup", required=True, help="URL to backup git repository")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
@@ -79,6 +81,7 @@ def main(args=None):
     args = parser.parse_args()
 
     update_definition_from_server(args)
+
 
 if __name__ == "__main__":
     main()
