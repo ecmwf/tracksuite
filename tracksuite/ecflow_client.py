@@ -1,3 +1,5 @@
+import logging as log
+
 try:
     import ecflow
 except ImportError:
@@ -13,13 +15,17 @@ class EcflowClient:
     Class to handle the connection to the ecflow server.
     """
 
-    def __init__(self, host: str = None, port: int = None):
+    def __init__(self, host: str = None, port: int = None, ssl: bool = False):
         self.host = host
         self.port = port
+
         if host is None and port is None:
             self.client = ecflow.Client()
         else:
             self.client = ecflow.Client(host, port)
+
+        if ssl:
+            self.client.enable_ssl()
 
     def update(self):
         """
@@ -114,7 +120,7 @@ class EcflowClient:
         self,
         new_node: ecflow.Node,
         old_node: ecflow.Node,
-        exclude: list = ["variables"],
+        attributes: list,
     ):
         """
         Update the attributes of a node based on the old node's attributes.
@@ -124,41 +130,16 @@ class EcflowClient:
             - defstatus
         """
         node_path = new_node.get_abs_node_path()
-        # Update attributes
-        attributes = [
-            "variable",
-            "event",
-            "meter",
-            "label",
-            # "limit-max",
-            # "limit-value",
-            # "trigger",
-            # "clock-type",
-            # "clock-gain",
-            # "clock-sync",
-            # "complete",
-            # "repeat",
-            # "late",
-            # "time",
-            # "today"
-        ]
         for attr in attributes:
-            if attr not in exclude:
-                old_values = getattr(old_node, attr + "s")  # need to use plural form)
-                new_values = getattr(old_node, attr + "s")  # need to use plural form)
-                for old_attr in old_values:
-                    # if old_attr.name() == "":
-                    #     breakpoint()
-                    #     print(old_values)
-                    # special case for event, where name_or_number is required instead of name
-                    name = getattr(
-                        old_attr, "name_or_number", getattr(old_attr, "name")
-                    )()
-                    value = getattr(old_attr, "value")()
-                    if name in new_values:
-                        if new_values[name].value() != value:
-                            print("test")
-                            getattr(self, "set_" + attr)(node_path, name, value)
+            old_values = getattr(old_node, attr + "s")  # need to use plural form)
+            new_values = getattr(old_node, attr + "s")  # need to use plural form)
+            for old_attr in old_values:
+                # special case for event, where name_or_number is required instead of name
+                name = getattr(old_attr, "name_or_number", getattr(old_attr, "name"))()
+                value = getattr(old_attr, "value")()
+                if name in new_values:
+                    if new_values[name].value() != value:
+                        getattr(self, "set_" + attr)(node_path, name, value)
 
     def update_node_repeat(self, new_node: ecflow.Node, old_node: ecflow.Node):
         """
@@ -171,7 +152,15 @@ class EcflowClient:
         if str(repeat) != "":  # maybe better way to check this?
             self.client.alter(node_path, "change", "repeat", str(repeat.value()))
 
-    def sync_node_recursive(self, new_node: ecflow.Node, old_node: ecflow.Node):
+    def sync_node_recursive(
+        self,
+        new_node: ecflow.Node,
+        old_node: ecflow.Node,
+        attributes: list = ["event", "meter", "label"],
+        skip_status: bool = False,
+        skip_attributes: bool = False,
+        skip_repeat: bool = False,
+    ):
         """
         Recursively sync the status of nodes in the new suite with the old suite.
         This function updates the status of the new node based on the old node's status.
@@ -180,21 +169,24 @@ class EcflowClient:
         # Compute full path of current new_node
         node_path = new_node.get_abs_node_path()
         if old_node.get_abs_node_path() != node_path:
-            print(f"could not find node {node_path}")
+            log.warning(f"could not find node {node_path}")
             return False
 
-        self.update_node_status(new_node, old_node)
-        self.update_node_attributes(new_node, old_node)
-        self.update_node_repeat(new_node, old_node)
+        if not skip_status:
+            self.update_node_status(new_node, old_node)
+        if not skip_attributes:
+            self.update_node_attributes(new_node, old_node, attributes)
+        if not skip_repeat:
+            self.update_node_repeat(new_node, old_node)
 
         # Recurse through children
         for new_child in new_node.nodes:
             for old_child in old_node.nodes:
                 if new_child.name() == old_child.name():
-                    self.sync_node_recursive(new_child, old_child)
+                    self.sync_node_recursive(new_child, old_child, attributes)
                     break
             else:
-                print(
+                log.warning(
                     f"Could not find child node {new_child.name()} in old node {node_path}"
                 )
 
