@@ -6,7 +6,16 @@ from tracksuite.ecflow_client import EcflowClient, save_definition
 from tracksuite.repos import GitRepositories
 
 
-def update_definition_from_server(args):
+def update_definition_from_server(
+    name: str,
+    definition: str,
+    user: str,
+    host: str,
+    port: int,
+    target: str,
+    backup: str,
+    local: str,
+):
     """
     Update the suite definition on the target repository.
     Steps:
@@ -17,20 +26,19 @@ def update_definition_from_server(args):
 
     # Create the GitSuiteDefinition object
     deployer = GitRepositories(
-        host=args.host,
-        user=args.user,
-        target_repo=args.target,
-        backup_repo=args.backup,
-        local_repo=args.local,
+        host=host,
+        user=user,
+        target_repo=target,
+        backup_repo=backup,
+        local_repo=local,
     )
 
-    definition = args.definition
-    if args.definition is None:
-        definition = f"{args.name}.def"
+    if definition is None:
+        definition = f"{name}.def"
 
     # Get the suite definition from the server
-    client = EcflowClient(args.host, args.port)
-    suite = client.get_suite(args.name)
+    client = EcflowClient(host, port)
+    suite = client.get_suite(name)
 
     # Save the suite definition to a file
     filename = os.path.join(deployer.local_dir, definition)
@@ -83,7 +91,16 @@ def get_parser():
 def main(args=None):
     parser = get_parser()
     args = parser.parse_args()
-    update_definition_from_server(args)
+    update_definition_from_server(
+        name=args.name,
+        definition=args.definition,
+        user=args.user,
+        host=args.host,
+        port=args.port,
+        target=args.target,
+        backup=args.backup,
+        local=args.local,
+    )
 
 
 if __name__ == "__main__":

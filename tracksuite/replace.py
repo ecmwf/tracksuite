@@ -5,7 +5,7 @@ from tracksuite import EcflowClient
 
 
 def replace_on_server(
-    suite: str,
+    name: str,
     definition,
     host: str,
     port: int,
@@ -20,7 +20,7 @@ def replace_on_server(
     Replace a suite on the server with a new definition file while keeping some attributes from the old suite.
 
     Parameters:
-        suite (str): Name of the Ecflow suite to replace.
+        name (str): Name of the Ecflow suite to replace.
         definition (str or ecflow.Defs): Path to the new definition file or ecflow.Defs object.
         host (str): Hostname of the Ecflow server.
         port (int): Port number of the Ecflow server.
@@ -32,7 +32,7 @@ def replace_on_server(
         skip_repeat (bool): If True, do not synchronise repeat attributes of the nodes.
     """
 
-    node_path = node_path or f"/{suite}"
+    node_path = node_path or f"/{name}"
     attributes = ["event", "meter", "label"]
     if sync_variables:
         attributes.append("variables")
@@ -43,11 +43,11 @@ def replace_on_server(
     new_client = EcflowClient(host, port, enable_ssl)
 
     # grab the suite running on the server
-    old_suite = old_client.get_suite(suite)
+    old_suite = old_client.get_suite(name)
 
     new_client.replace_on_server(node_path, definition, force=False)
 
-    new_suite = new_client.get_suite(suite)
+    new_suite = new_client.get_suite(name)
     new_client.sync_node_recursive(
         new_suite,
         old_suite,
@@ -59,7 +59,7 @@ def replace_on_server(
 
     # udpate new suite to check the status
     new_client.update()
-    new_suite = new_client.get_suite(suite)
+    new_suite = new_client.get_suite(name)
 
 
 def get_parser():
@@ -94,7 +94,7 @@ def main(args=None):
     parser = get_parser()
     args = parser.parse_args()
     replace_on_server(
-        suite=args.name,
+        name=args.name,
         definition=args.def_file,
         host=args.host,
         port=args.port,
