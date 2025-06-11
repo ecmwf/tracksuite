@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from tracksuite import EcflowClient
+from tracksuite.ecflow_client import EcflowClient
 
 
 def replace_on_server(
@@ -42,7 +42,7 @@ def replace_on_server(
     old_client = EcflowClient(host, port, enable_ssl)
     new_client = EcflowClient(host, port, enable_ssl)
 
-    # grab the suite running on the server
+    # stage the suite running on the server
     old_suite = old_client.get_suite(name)
 
     new_client.replace_on_server(node_path, definition, force=False)
@@ -51,6 +51,7 @@ def replace_on_server(
     new_client.sync_node_recursive(
         new_suite,
         old_suite,
+        attributes=attributes,
         sync_variables=sync_variables,
         skip_status=skip_status,
         skip_attributes=skip_attributes,

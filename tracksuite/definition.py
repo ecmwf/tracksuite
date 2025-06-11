@@ -71,7 +71,7 @@ def update_definition_from_server(
 
 
 def get_parser():
-    description = "Update suite definition on target from server"
+    description = "Update suite definition on target from ecflow server"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("name", help="Ecflow suite name")
     parser.add_argument("--definition", help="Name of the definition file to update")

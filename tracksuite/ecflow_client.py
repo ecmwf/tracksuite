@@ -138,7 +138,7 @@ class EcflowClient:
                 name = getattr(old_attr, "name_or_number", getattr(old_attr, "name"))()
                 value = getattr(old_attr, "value")()
                 if name in new_values:
-                    if new_values[name].value() != value:
+                    if name in new_values and new_values[name].value() != value:
                         getattr(self, "set_" + attr)(node_path, name, value)
 
     def update_node_repeat(self, new_node: ecflow.Node, old_node: ecflow.Node):

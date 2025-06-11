@@ -43,6 +43,7 @@ exclude = ["tests"]
     tracksuite-deploy = "tracksuite.deploy:main"
     tracksuite-revert = "tracksuite.revert:main"
     tracksuite-update-defs = "tracksuite.definition:main"
+    tracksuite-replace = "tracksuite.replace:main"
 
 [tool.setuptools_scm]
 write_to = "tracksuite/_version.py"
