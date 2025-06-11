@@ -30,7 +30,7 @@
 </p>
 
 > \[!IMPORTANT\]
-> This software is **Emerging** and subject to ECMWF's guidelines on [Software Maturity](https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity).
+> This software is **Incubating** and subject to ECMWF's guidelines on [Software Maturity](https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity).
 
 **Tracksuite** offers command-line tools and a Python API to allow users to track and deploy ecFlow suites through git.
 
