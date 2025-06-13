@@ -1,14 +1,13 @@
 import argparse
+import logging as log
 import os
-import tempfile
 from filecmp import dircmp
 
-import git
+from tracksuite.repos import GitRepositories
+from tracksuite.utils import run_cmd
 
-from .utils import run_cmd
 
-
-class GitDeployment:
+class GitDeployment(GitRepositories):
     def __init__(
         self,
         host=None,
@@ -29,108 +28,17 @@ class GitDeployment:
             target_repo(str): Path to the target repository on the target host.
             backup_repo(str): URL of the backup repository.
         """
-
-        print("Creating deployer:")
-        self.deploy_user = os.getenv("USER")
-        self.deploy_host = os.getenv("HOSTNAME")
-        self.user = self.deploy_user if user is None else user
-        self.host = self.deploy_host if host is None else host
+        super().__init__(
+            host=host,
+            user=user,
+            target_repo=target_repo,
+            backup_repo=backup_repo,
+            local_repo=local_repo,
+        )
 
         self.staging_dir = staging_dir
         if self.staging_dir is None:
             raise Exception("Staging directory not specified")
-
-        if local_repo is None:
-            local_repo = tempfile.mkdtemp(prefix="suite_")
-        self.local_dir = local_repo
-
-        self.target_dir = target_repo
-
-        # setup local repo
-        # for test purpose with /tmp folders, stay local with localhost
-        if self.host == "localhost":
-            self.target_repo = f"{target_repo}"
-        else:
-            self.target_repo = f"ssh://{self.user}@{self.host}:{target_repo}"
-        try:
-            print(f"    -> Loading local repo {local_repo}")
-            self.repo = git.Repo(local_repo)
-        except (git.exc.NoSuchPathError, git.exc.InvalidGitRepositoryError):
-            print(f"    -> Cloning from {self.target_repo}")
-            self.repo = git.Repo.clone_from(self.target_repo, local_repo, depth=1)
-            self.repo.remotes["origin"].rename("target")
-
-        # get the name of the default branch
-        self.default_branch = self.repo.active_branch.name
-
-        # link with backup repo
-        self.backup_repo = backup_repo
-        if backup_repo and "backup" not in self.repo.remotes:
-            print(f"    -> Creating backup remote {backup_repo}")
-            self.repo.create_remote("backup", url=backup_repo)
-            self.sync_remotes()
-
-    def get_hash_remote(self, remote):
-        """
-        Get the git hash of a remote repository on the default branch.
-
-        Parameters:
-            remote(str): Name of the remote repository (typically "target").
-
-        Returns:
-            The git hash of the default branch.
-        """
-        remote_branch = self.repo.remotes[remote].refs[self.default_branch]
-        return remote_branch.commit.hexsha
-
-    def check_sync_local_remote(self, remote):
-        """
-        Check that the local repository git hash is the same as the remote.
-        Raise exception if the git hashes don't match.
-
-        Parameters:
-            remote(str): Name of the remote repository (typically "target").
-
-        Returns:
-            The matching git hash.
-        """
-        remote_repo = self.repo.remotes[remote]
-        remote_repo.fetch()
-        hash_target = self.get_hash_remote(remote)
-        hash_local = self.repo.active_branch.commit.hexsha
-        if hash_target != hash_local:
-            print(f"Local hash {hash_local}")
-            print(f"Target hash {hash_target}")
-            raise Exception(
-                f"Local ({self.local_dir}) and remote ({remote}) git repositories not in sync!"
-            )
-        return hash_local
-
-    def check_sync_remotes(self, remote1, remote2):
-        """
-        Check that two remote repositories have the same git hash.
-        Raise exception if the git hashes don't match.
-
-        Parameters:
-            remote1(str): Name of the first remote repository (typically "target").
-            remote2(str): Name of the second remote repository (typically "backup").
-
-        Returns:
-            The matching git hash.
-        """
-        remote_repo1 = self.repo.remotes[remote1]
-        remote_repo2 = self.repo.remotes[remote2]
-        remote_repo1.fetch()
-        remote_repo2.fetch()
-        hash1 = self.get_hash_remote(remote1)
-        hash2 = self.get_hash_remote(remote2)
-        if hash1 != hash2:
-            print(f"Remote {remote1} hash {hash1}")
-            print(f"Remote {remote2} hash {hash2}")
-            raise Exception(
-                f"Remote git repositories ({remote1} and {remote2}) not in sync!"
-            )
-        return hash1
 
     def commit(self, message=None, files=None):
         """
@@ -155,36 +63,9 @@ class GitDeployment:
             else:
                 return False
         except Exception as e:
-            print("Commit failed!")
+            log.info("Commit failed!")
             raise e
         return True
-
-    def push(self, remote):
-        """
-        Pushes the local state to the remote repository
-
-        Parameters:
-            remote(str): Name of the remote repository (typically "target").
-        """
-        remote_repo = self.repo.remotes[remote]
-        try:
-            remote_repo.push().raise_if_error()
-        except git.exc.GitCommandError:
-            raise git.exc.GitCommandError(
-                f"Could not push changes to remote repository {remote}. "
-                + "Check configuration and the state of the remote repository! "
-                + "The remote repository might have uncommited changes."
-            )
-
-    def pull_remotes(self):
-        """
-        Git pull the remote repository to the local repository
-        """
-        remote_repo = self.repo.remotes["target"]
-        remote_repo.pull()
-        self.check_sync_local_remote("target")
-        if self.backup_repo:
-            self.sync_remotes()
 
     def diff_staging(self):
         """
@@ -226,7 +107,7 @@ class GitDeployment:
                 get_diff_files(sub_dcmp, root=os.path.join(root, dir))
 
         diff = dircmp(self.staging_dir, self.local_dir)
-        print("Changes in staged suite:")
+        log.info("Changes in staged suite:")
         get_diff_files(diff)
         changes = [
             ("Removed", removed),
@@ -235,12 +116,12 @@ class GitDeployment:
         ]
         for name, files in changes:
             if files:
-                print(f"    - {name}:")
+                log.info(f"    - {name}:")
                 for path in files:
-                    print(f"        - {path}")
-        print("For more details, compare the following folders:")
-        print(self.staging_dir)
-        print(self.local_dir)
+                    log.info(f"        - {path}")
+        log.info("For more details, compare the following folders:")
+        log.info(self.staging_dir)
+        log.info(self.local_dir)
 
     def deploy(self, message=None, files=None):
         """
@@ -256,27 +137,27 @@ class GitDeployment:
         Parameters:
             message(str): optional git commit message to append to default message.
         """
-        print("Deploying suite to remote locations")
+        log.info("Deploying suite to remote locations")
         # check if repos are in sync
-        print("    -> Checking that git repos are in sync")
+        log.info("    -> Checking that git repos are in sync")
         hash_init = self.check_sync_local_remote("target")
         if self.backup_repo:
             self.check_sync_local_remote("backup")
             self.check_sync_remotes("target", "backup")
 
         # rsync staging folder to current repo
-        print("    -> Staging suite")
+        log.info("    -> Staging suite")
 
         rsync_options = "-avzc --delete  --exclude .git "
         cmd = f"rsync {rsync_options} {self.staging_dir}/ {self.local_dir}/"
         run_cmd(cmd)
 
         # git commit and push to remotes
-        print("    -> Git commit")
+        log.info("    -> Git commit")
         if not self.commit(message, files):
-            print("Nothing to commit... aborting")
+            log.info("Nothing to commit... aborting")
             return False
-        print(f"    -> Git push to target {self.target_repo} on host {self.host}")
+        log.info(f"    -> Git push to target {self.target_repo} on host {self.host}")
 
         hash_check = self.get_hash_remote("target")
         if hash_check != hash_init:
@@ -287,27 +168,13 @@ class GitDeployment:
 
         self.push("target")
         if self.backup_repo:
-            print(f"    -> Git push to backup repository {self.backup_repo}")
+            log.info(f"    -> Git push to backup repository {self.backup_repo}")
             self.push("backup")
 
         return True
 
-    def sync_remotes(self):
-        """
-        Sync the remote repositories.
-        Steps:
-            - git fetch remote repositories and check they are in sync
-            - git push to backup if needed
-        """
-        try:
-            self.check_sync_local_remote("backup")
-            self.check_sync_remotes("target", "backup")
-        except Exception:
-            print("WARNING! Backup repository outdated. Pushing update to backup")
-            self.push("backup")
 
-
-def main(args=None):
+def get_parser():
     description = "Suite deployment tool"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--stage", required=True, help="Staged suite")
@@ -318,7 +185,7 @@ def main(args=None):
         "--local",
         help="Path to local git repository (will be created if doesn't exist)",
     )
-    parser.add_argument("--backup", help="URL to backup git repository")
+    parser.add_argument("--backup", help="URL to the backup git repository")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--user", default=os.getenv("USER"), help="Deploy user")
     parser.add_argument("--message", help="Git message")
@@ -331,18 +198,22 @@ def main(args=None):
         nargs="+",
         help="Specific files to deploy, by default everything is deployed",
     )
+    return parser
 
+
+def main(args=None):
+    parser = get_parser()
     args = parser.parse_args()
 
-    print("Initialisation options:")
-    print(f"    - host: {args.host}")
-    print(f"    - user: {args.user}")
-    print(f"    - staged suite: {args.stage}")
-    print(f"    - local repo: {args.local}")
-    print(f"    - target repo: {args.target}")
-    print(f"    - backup repo: {args.backup}")
-    print(f"    - git message: {args.message}")
-    print(f"    - files to deploy: {args.files}")
+    log.info("Initialisation options:")
+    log.info(f"    - host: {args.host}")
+    log.info(f"    - user: {args.user}")
+    log.info(f"    - staged suite: {args.stage}")
+    log.info(f"    - local repo: {args.local}")
+    log.info(f"    - target repo: {args.target}")
+    log.info(f"    - backup repo: {args.backup}")
+    log.info(f"    - git message: {args.message}")
+    log.info(f"    - files to deploy: {args.files}")
 
     deployer = GitDeployment(
         host=args.host,
@@ -358,9 +229,9 @@ def main(args=None):
 
     if args.push:
         if args.files is not None:
-            print("Deploying only the following files:")
+            log.info("Deploying only the following files:")
             for f in args.files:
-                print(f"    - {f}")
+                log.info(f"    - {f}")
 
         check = input(
             "You are about to push the staged suite to the target directory. Are you sure? (y/N)"
