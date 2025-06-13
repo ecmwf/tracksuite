@@ -1,7 +1,6 @@
 import argparse
-import os
 import logging as log
-
+import os
 
 from tracksuite.ecflow_client import EcflowClient
 
@@ -34,7 +33,9 @@ def replace_on_server(
         skip_repeat (bool): If True, do not synchronise repeat attributes of the nodes.
     """
 
-    log.warning("The 'replace_on_server' function of tracksuite is experimental. Do not use it in production!")
+    log.warning(
+        "The 'replace_on_server' function of tracksuite is experimental. Do not use it in production!"
+    )
 
     node_path = node_path or f"/{name}"
     attributes = ["event", "meter", "label"]

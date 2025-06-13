@@ -24,7 +24,9 @@ def update_definition_from_server(
         - Push the changes to the target repository
     """
 
-    log.warning("The 'update_definition_from_server' function of tracksuite is experimental. Do not use it in production!")
+    log.warning(
+        "The 'update_definition_from_server' function of tracksuite is experimental. Do not use it in production!"
+    )
 
     # Create the GitSuiteDefinition object
     deployer = GitRepositories(
