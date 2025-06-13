@@ -1,4 +1,5 @@
-from __future__ import annotations   # ← annotations are strings at run‑time
+from __future__ import annotations  # ← annotations are strings at run‑time
+
 import logging as log
 from typing import Any, cast
 
@@ -14,15 +15,15 @@ class EcflowClient:
     """
 
     def __init__(self, host: str = None, port: int = None, ssl: bool = False):
-        
+
         # only raise an error at this point if ecflow is not installed
-        if ecflow is None:   # type: ignore[comparison‑overlap]
+        if ecflow is None:  # type: ignore[comparison‑overlap]
             raise ModuleNotFoundError(
                 "The optional dependency 'ecflow' is not installed.\n"
                 "Install it, e.g.:\n"
                 "    conda install ecflow"
             )
-        
+
         self.host = host
         self.port = port
 
