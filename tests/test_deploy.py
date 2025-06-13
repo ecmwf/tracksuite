@@ -10,7 +10,6 @@ from tracksuite.init import setup_remote
 
 @pytest.fixture
 def git_deployment():
-
     temp_dir = tempfile.TemporaryDirectory().name
     staging_dir = os.path.join(temp_dir, "staging")
     target_repo = os.path.join(temp_dir, "target")
@@ -33,7 +32,6 @@ def git_deployment():
 
 @pytest.fixture
 def git_deployment_with_backup():
-
     temp_dir = tempfile.TemporaryDirectory().name
     staging_dir = os.path.join(temp_dir, "staging")
     target_repo = os.path.join(temp_dir, "target")
@@ -59,7 +57,6 @@ def git_deployment_with_backup():
 
 
 def test_git_deployment_constructor(git_deployment):
-
     assert git_deployment.host == "localhost"
     assert git_deployment.user == os.getenv("USER")
     print(git_deployment.target_dir)
@@ -67,7 +64,6 @@ def test_git_deployment_constructor(git_deployment):
 
 
 def test_git_deployment_constructor_with_backup(git_deployment_with_backup):
-
     assert git_deployment_with_backup.host == "localhost"
     assert git_deployment_with_backup.user == os.getenv("USER")
     print(git_deployment_with_backup.target_dir)
@@ -76,7 +72,6 @@ def test_git_deployment_constructor_with_backup(git_deployment_with_backup):
 
 
 def test_deploy_default(git_deployment):
-
     deployer = git_deployment
     staging_dir = deployer.staging_dir
 
@@ -98,7 +93,6 @@ def test_deploy_default(git_deployment):
 
 
 def test_deploy_message(git_deployment):
-
     deployer = git_deployment
     staging_dir = deployer.staging_dir
 
@@ -120,7 +114,6 @@ def test_deploy_message(git_deployment):
 
 
 def test_deploy_with_backup(git_deployment_with_backup):
-
     deployer = git_deployment_with_backup
     staging_dir = deployer.staging_dir
 
@@ -142,7 +135,6 @@ def test_deploy_with_backup(git_deployment_with_backup):
 
 
 def test_deploy_files(git_deployment):
-
     deployer = git_deployment
     staging_dir = deployer.staging_dir
 

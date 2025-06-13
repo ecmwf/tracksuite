@@ -2,6 +2,8 @@
 
 from .deploy import GitDeployment
 from .init import setup_remote
+from .replace import replace_on_server
+from .revert import GitRevert
 
 try:
     # NOTE: the `_version.py` file must not be present in the git repository
