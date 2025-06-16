@@ -40,7 +40,7 @@ def replace_on_server(
     node_path = node_path or f"/{name}"
     attributes = ["event", "meter", "label"]
     if sync_variables:
-        attributes.append("variables")
+        attributes.append("variable")
 
     # we need two clients because the defs and suite objects are updated as well
     # when we update the client from the server
