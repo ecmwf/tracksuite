@@ -57,7 +57,6 @@ def replace_on_server(
         new_suite,
         old_suite,
         attributes=attributes,
-        sync_variables=sync_variables,
         skip_status=skip_status,
         skip_attributes=skip_attributes,
         skip_repeat=skip_repeat,
