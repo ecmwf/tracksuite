@@ -53,7 +53,7 @@ def replace_on_server(
     new_client.replace_on_server(node_path, definition, force=False)
 
     new_suite = new_client.get_suite(name)
-    print(new_suite)
+
     new_client.sync_node_recursive(
         new_suite,
         old_suite,
