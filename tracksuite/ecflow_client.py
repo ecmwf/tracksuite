@@ -139,15 +139,22 @@ class EcflowClient:
         """
         node_path = new_node.get_abs_node_path()
         for attr in attributes:
-            old_values = getattr(old_node, attr + "s")  # need to use plural form)
-            new_values = getattr(old_node, attr + "s")  # need to use plural form)
-            for old_attr in old_values:
+            old_attributes = getattr(old_node, attr)  # need to use plural form)
+            for old_attr in old_attributes:
                 # special case for event, where name_or_number is required instead of name
-                name = getattr(old_attr, "name_or_number", getattr(old_attr, "name"))()
-                value = getattr(old_attr, "value")()
-                if name in new_values:
-                    if name in new_values and new_values[name].value() != value:
-                        getattr(self, "set_" + attr)(node_path, name, value)
+                old_name = getattr(
+                    old_attr, "name_or_number", getattr(old_attr, "name")
+                )()
+                old_value = getattr(old_attr, "value")()
+                new_attributes = getattr(new_node, attr)  # need to use plural form)
+                for new_attr in new_attributes:
+                    new_name = getattr(
+                        new_attr, "name_or_number", getattr(new_attr, "name")
+                    )()
+                    new_value = getattr(new_attr, "value")()
+                    if new_name == old_name:
+                        if new_value != old_value:
+                            getattr(self, "set_" + attr)(node_path, old_name, old_value)
 
     def update_node_repeat(self, new_node: ecflow.Node, old_node: ecflow.Node):
         """
