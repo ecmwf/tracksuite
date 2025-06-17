@@ -38,9 +38,9 @@ def replace_on_server(
     )
 
     node_path = node_path or f"/{name}"
-    attributes = ["event", "meter", "label"]
+    attributes = ["events", "meters", "labels"]
     if sync_variables:
-        attributes.append("variable")
+        attributes.append("variables")
 
     # we need two clients because the defs and suite objects are updated as well
     # when we update the client from the server
@@ -53,6 +53,7 @@ def replace_on_server(
     new_client.replace_on_server(node_path, definition, force=False)
 
     new_suite = new_client.get_suite(name)
+    print(new_suite)
     new_client.sync_node_recursive(
         new_suite,
         old_suite,
