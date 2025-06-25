@@ -5,7 +5,10 @@ import logging
 LOGGER = logging.getLogger("tracksuite")
 
 import warnings
-warnings.formatwarning = lambda mess, category, filename, lineno, *args: f"\033[93m[{category.__name__}] {filename}:{lineno}\n{mess}\n\033[0m"
+
+warnings.formatwarning = (
+    lambda mess, category, filename, lineno, *args: f"\033[93m[{category.__name__}] {filename}:{lineno}\n{mess}\n\033[0m"
+)
 warn = warnings.warn
 
 from .deploy import GitDeployment

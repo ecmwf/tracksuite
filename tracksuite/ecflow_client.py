@@ -1,7 +1,8 @@
 from __future__ import annotations  # ← annotations are strings at run‑time
 
-from tracksuite import LOGGER as log
 from typing import Any, cast
+
+from tracksuite import LOGGER as log
 
 try:
     import ecflow
@@ -15,7 +16,6 @@ class EcflowClient:
     """
 
     def __init__(self, host: str = None, port: int = None, ssl: bool = False):
-
         # only raise an error at this point if ecflow is not installed
         if ecflow is None:  # type: ignore[comparison‑overlap]
             raise ModuleNotFoundError(

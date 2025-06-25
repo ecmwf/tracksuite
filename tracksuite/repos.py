@@ -5,6 +5,7 @@ import git
 
 from tracksuite import LOGGER as log
 
+
 class GitRepositories:
     def __init__(
         self,

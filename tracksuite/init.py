@@ -7,6 +7,7 @@ import git
 from tracksuite import LOGGER as log
 from tracksuite.utils import run_cmd
 
+
 class Client:
     def __init__(self, host, user):
         """
