@@ -1,9 +1,9 @@
-import logging as log
 import os
 import tempfile
 
 import git
 
+from tracksuite import LOGGER as log
 
 class GitRepositories:
     def __init__(

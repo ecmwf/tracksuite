@@ -1,6 +1,6 @@
 from __future__ import annotations  # ← annotations are strings at run‑time
 
-import logging as log
+from tracksuite import LOGGER as log
 from typing import Any, cast
 
 try:

@@ -1,9 +1,8 @@
 import argparse
-import logging as log
 import os
 
 from tracksuite.repos import GitRepositories
-
+from tracksuite import LOGGER as log
 
 class GitRevert(GitRepositories):
     def __init__(
