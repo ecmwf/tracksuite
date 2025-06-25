@@ -1,8 +1,8 @@
 import argparse
-import logging as log
 import os
 from filecmp import dircmp
 
+from tracksuite import LOGGER as log
 from tracksuite.repos import GitRepositories
 from tracksuite.utils import run_cmd
 

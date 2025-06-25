@@ -1,5 +1,16 @@
 # flake8: noqa
 
+import logging
+
+LOGGER = logging.getLogger("tracksuite")
+
+import warnings
+
+warnings.formatwarning = (
+    lambda mess, category, filename, lineno, *args: f"\033[93m[{category.__name__}] {filename}:{lineno}\n{mess}\n\033[0m"
+)
+warn = warnings.warn
+
 from .deploy import GitDeployment
 from .init import setup_remote
 from .replace import replace_on_server
@@ -12,3 +23,5 @@ try:
 except ImportError:  # pragma: no cover
     # Local copy or not installed with setuptools
     __version__ = ""
+
+LOGGER.debug("tracksuite version: %s", __version__)

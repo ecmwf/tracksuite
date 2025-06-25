@@ -1,7 +1,7 @@
 import argparse
-import logging as log
 import os
 
+from tracksuite import LOGGER, warn
 from tracksuite.ecflow_client import EcflowClient, save_definition
 from tracksuite.repos import GitRepositories
 
@@ -24,8 +24,9 @@ def update_definition_from_server(
         - Push the changes to the target repository
     """
 
-    log.warning(
-        "The 'update_definition_from_server' function of tracksuite is experimental. Do not use it in production!"
+    warn(
+        "The 'update_definition_from_server' function of tracksuite is experimental. Do not use it in production!",
+        stacklevel=2,
     )
 
     # Create the GitSuiteDefinition object
@@ -56,9 +57,9 @@ def update_definition_from_server(
         deployer.check_sync_remotes("target", "backup")
 
     # Commit the changes to the local repository
-    log.info("    -> Git commit")
+    LOGGER.info("    -> Git commit")
     if not deployer.commit(message="Update suite definition from server"):
-        log.info("Nothing to commit... aborting")
+        LOGGER.info("Nothing to commit... aborting")
         return False
 
     hash_check = deployer.get_hash_remote("target")
@@ -70,7 +71,7 @@ def update_definition_from_server(
 
     deployer.push("target")
     if deployer.backup_repo:
-        log.info(f"    -> Git push to backup repository {deployer.backup_repo}")
+        LOGGER.info(f"    -> Git push to backup repository {deployer.backup_repo}")
         deployer.push("backup")
 
 
