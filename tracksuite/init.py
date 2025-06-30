@@ -1,11 +1,11 @@
 import argparse
-import logging as log
 import os
 import tempfile
 
 import git
 
-from .utils import run_cmd
+from tracksuite import LOGGER as log
+from tracksuite.utils import run_cmd
 
 
 class Client:

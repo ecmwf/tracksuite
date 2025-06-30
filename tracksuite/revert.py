@@ -1,7 +1,7 @@
 import argparse
-import logging as log
 import os
 
+from tracksuite import LOGGER as log
 from tracksuite.repos import GitRepositories
 
 
