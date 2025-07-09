@@ -51,11 +51,19 @@ class EcflowClient:
 
     def get_suite(self, name: str) -> ecflow.Suite:
         """
-        Get the suite definition from the server.
+        Get the suite object from the server for a given suite name.
         """
         defs = self.get_defs()
         suite = defs.find_suite(name)
         return suite
+
+    def get_node(self, name: str) -> ecflow.Node:
+        """
+        Get a node object from the server for a given path.
+        """
+        defs = self.get_defs()
+        node = defs.find_abs_node(name)
+        return node
 
     def set_state(self, node_path: str, state: str):
         """
