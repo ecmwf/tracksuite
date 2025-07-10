@@ -268,8 +268,7 @@ def main(args=None):
     args = parser.parse_args()
 
     client = EcflowClient(args.host, args.port)
-    defs = client.get_defs()
-    node = defs.find_abs_node(args.node)
+    node = client.get_node(args.node)
 
     processor = SuiteDisplay(args.format)
     processor.extract_node_tree(node)
