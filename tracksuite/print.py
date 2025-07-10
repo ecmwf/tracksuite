@@ -1,19 +1,52 @@
+"""
+tracksuite.print
+================
+
+Provides utilities for printing ecFlow node trees with state icons and formatting options.
+Supports raw, Markdown, and HTML output formats. Displays job output logs for tasks if available.
+
+Classes:
+    SuiteDisplay: Extracts and formats ecFlow node trees and associated logs.
+    Formatter: Abstract base class for output formatters.
+    RawFormatter: Formatter for plain text output.
+    MarkdownFormatter: Formatter for Markdown output.
+    HTMLFormatter: Formatter for HTML output.
+
+Functions:
+    get_state_icon(node): Returns a unicode icon for the ecFlow node state.
+    get_formatter(format_type): Returns a formatter instance for the given format type.
+    get_parser(): Returns an argument parser for the CLI.
+    main(args=None): CLI entry point.
+
+Usage:
+    tracksuite-print <node> [--host HOST] [--port PORT] [-f FORMAT]
+"""
 
 import os
 import argparse
-import logging as log
 from tracksuite.ecflow_client import EcflowClient
-
 import ecflow
 
 
-def print_state(node):
+def get_state_icon(node):
+    """
+    Return a unicode icon representing the state of the given ecFlow node.
+
+    Args:
+        node (ecflow.Node): The ecFlow node.
+
+    Returns:
+        str: Unicode icon for the node state.
+
+    Raises:
+        ValueError: If the node state is unknown.
+    """
     if node.get_state() == ecflow.State.complete:
         return "✅"
     elif node.get_state() == ecflow.State.active:
         return "▶️"
     elif node.get_state() == ecflow.State.queued:
-        return "🔄"
+        return "⏸️"
     elif node.get_state() == ecflow.State.submitted:
         return "🔄"
     elif node.get_state() == ecflow.State.aborted:
@@ -22,41 +55,225 @@ def print_state(node):
         raise ValueError(f"Unknown state: {node.get_state()}")
 
 
-def print_node_status(node, indent=""):
-    print(f"| {indent}{node.name()} | {print_state(node)} |")
+class SuiteDisplay:
+    """
+    Extracts and formats an ecFlow node tree and associated job output logs.
 
-    for child in node.nodes:
-        print_node_status(child, indent + "--")
+    Args:
+        format (str): Output format ('raw', 'md', or 'html').
+    """
+
+    def __init__(self, format="raw"):
+        self.tree = ""
+        self.content = {}
+        self.formatter = get_formatter(format)
+
+    def process_task(self, task):
+        """
+        Process a task node, extracting its job output if available.
+
+        Args:
+            task (ecflow.Task): The task node.
+
+        Returns:
+            str: Path label for the task.
+        """
+        var = task.find_gen_variable("ECF_JOBOUT")
+        jobout = getattr(var, "value")()
+        if jobout and os.path.exists(jobout):
+            with open(jobout, "r") as f:
+                jobout_content = f.read()
+        else:
+            jobout_content = "Could not find jobout file."
+        path = f"{task.get_abs_node_path()} + {get_state_icon(task)}"
+        self.content[path] = jobout_content
+        return path
+
+    def extract_node_tree(self, node, prefix=""):
+        """
+        Recursively extract the node tree structure and build formatted output.
+
+        Args:
+            node (ecflow.Node): The root node.
+            prefix (str): Prefix for tree formatting.
+        """
+        if self.tree == "":
+            self.tree = f"{node.name()}/\n"
+
+        children = node.nodes
+        n_child = 0
+        for child in children:
+            n_child += 1
+        children = node.nodes
+        for i, child in enumerate(children):
+            connector = "└── " if i == n_child - 1 else "├── "
+            state_icon = get_state_icon(child)
+            if isinstance(child, ecflow.Task):
+                anchor = self.process_task(child)
+                label = self.formatter.label(anchor, f"{child.name()} {state_icon}")
+            else:
+                label = f"{child.name()} {state_icon}"
+            line = f"{prefix}{connector}{label}\n"
+            self.tree += line
+            if child.nodes:
+                extension = "    " if i == n_child - 1 else "│   "
+                self.extract_node_tree(child, prefix + extension)
+
+    def print(self):
+        """
+        Print the formatted node tree and logs using the selected formatter.
+        """
+        self.formatter.tree(self.tree)
+        self.formatter.logs(self.content)
+
+
+def get_formatter(format_type):
+    """
+    Return a formatter instance for the given format type.
+
+    Args:
+        format_type (str): Output format ('raw', 'md', or 'html').
+
+    Returns:
+        Formatter: Formatter instance.
+
+    Raises:
+        ValueError: If the format type is unknown.
+    """
+    if format_type == "raw":
+        return RawFormatter()
+    elif format_type == "md":
+        return MarkdownFormatter()
+    elif format_type == "html":
+        return HTMLFormatter()
+    else:
+        raise ValueError(f"Unknown format type: {format_type}")
+
+
+class Formatter():
+    """
+    Abstract base class for output formatters.
+    """
+
+    def tree(self, tree):
+        """
+        Print the formatted node tree.
+
+        Args:
+            tree (str): The formatted tree string.
+        """
+        raise NotImplementedError("Header method not implemented")
+    
+    def logs(self, logs):
+        """
+        Print the logs for each node.
+
+        Args:
+            logs (dict): Mapping from node path to log content.
+        """
+        raise NotImplementedError("Logs method not implemented")
+
+    def label(self, anchor, label):
+        """
+        Format a label for a node.
+
+        Args:
+            anchor (str): Anchor or reference for the node.
+            label (str): Display label.
+
+        Returns:
+            str: Formatted label.
+        """
+        raise NotImplementedError("Label method not implemented")
+
+
+class RawFormatter(Formatter):
+    """
+    Formatter for plain text output.
+    """
+
+    def tree(self, tree):
+        print(tree)
+
+    def logs(self, logs):
+        print("Logs cannot be printed in raw format.")
+
+    def label(self, anchor, label):
+        return label
+
+
+class MarkdownFormatter(RawFormatter):
+    """
+    Formatter for Markdown output.
+    """
+
+    def tree(self, tree):
+        print("```text")
+        print(tree)
+        print("```")
+
+    def logs(self, logs):
+        for name, content in logs.items():
+            print(f"<details id=\"{name}\">\n")
+            print(f"<summary><strong>{name}</strong></summary>\n\n")
+            print(f"{content}\n\n")
+            print(f"</details>\n")
+
+
+class HTMLFormatter(Formatter):
+    """
+    Formatter for HTML output.
+    """
+
+    def tree(self, tree):
+        print("<pre>")
+        print(tree)
+        print("</pre>\n")
+
+    def logs(self, logs):
+        for name, content in logs.items():
+            print(f"<details id=\"{name}\">\n")
+            print(f"<summary><strong>{name}</strong></summary>\n\n")
+            print(f"{content}\n\n")
+            print(f"</details>\n")
+
+    def label(self, anchor, label):
+        return f'<a href="#{anchor}">{label}</a>'
 
 
 def get_parser():
-    description = "Replace suite on server and keep some attributes from the old one"
+    """
+    Return an argument parser for the CLI.
+
+    Returns:
+        argparse.ArgumentParser: The argument parser.
+    """
+    description = "Print ecFlow node tree with states"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("node", help="Ecflow node on server to print")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--port", default=3141, help="Ecflow port")
+    parser.add_argument("-f", "--format", default="raw", help="Output format (md, html, raw)")
     return parser
 
 
 def main(args=None):
+    """
+    CLI entry point for printing ecFlow node trees.
+
+    Args:
+        args (list, optional): Command-line arguments.
+    """
     parser = get_parser()
     args = parser.parse_args()
 
-    log.info("Revert options:")
-    log.info(f"    - node: {args.node}")
-    log.info(f"    - host: {args.host}")
-    log.info(f"    - port: {args.port}")
-
     client = EcflowClient(args.host, args.port)
-
-    # stage the suite running on the server
     defs = client.get_defs()
     node = defs.find_abs_node(args.node)
-    # node = client.get_node(args.node)
 
-    print("| Node | State |")
-    print("| --- | --- |")
-    print_node_status(node)
+    processor = SuiteDisplay(args.format)
+    processor.extract_node_tree(node)
+    processor.print()
 
 
 if __name__ == "__main__":
