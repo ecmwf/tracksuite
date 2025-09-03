@@ -206,7 +206,14 @@ class EcflowClient:
         for new_child in new_node.nodes:
             for old_child in old_node.nodes:
                 if new_child.name() == old_child.name():
-                    self.sync_node_recursive(new_child, old_child, attributes)
+                    self.sync_node_recursive(
+                        new_child,
+                        old_child,
+                        attributes,
+                        skip_status,
+                        skip_attributes,
+                        skip_repeat,
+                    )
                     break
             else:
                 log.warning(

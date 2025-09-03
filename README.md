@@ -131,5 +131,20 @@ To install tracksuite using pip (requires python, ecFlow (optional) and pip):
     --skip-attributes    Don't synchronise attributes
     --skip-repeat        Don't synchronise repeat
 
+**To print the status of the suite (useful to create small html or md summary):**
+
+    usage: print.py [-h] [--host HOST] [--port PORT] [-f FORMAT] node
+
+    Print ecFlow node tree with states
+
+    positional arguments:
+      node                  Ecflow node on server to print
+
+    options:
+      -h, --help            show this help message and exit
+      --host HOST           Target host
+      --port PORT           Ecflow port
+      -f FORMAT, --format FORMAT
+                            Output format (md, html, raw)
 ## Overview
 ![](workflow.png)

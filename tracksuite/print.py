@@ -22,10 +22,12 @@ Usage:
     tracksuite-print <node> [--host HOST] [--port PORT] [-f FORMAT]
 """
 
-import os
 import argparse
-from tracksuite.ecflow_client import EcflowClient
+import os
+
 import ecflow
+
+from tracksuite.ecflow_client import EcflowClient
 
 
 def get_state_icon(node):
@@ -150,7 +152,7 @@ def get_formatter(format_type):
         raise ValueError(f"Unknown format type: {format_type}")
 
 
-class Formatter():
+class Formatter:
     """
     Abstract base class for output formatters.
     """
@@ -163,7 +165,7 @@ class Formatter():
             tree (str): The formatted tree string.
         """
         raise NotImplementedError("Header method not implemented")
-    
+
     def logs(self, logs):
         """
         Print the logs for each node.
@@ -214,10 +216,10 @@ class MarkdownFormatter(RawFormatter):
 
     def logs(self, logs):
         for name, content in logs.items():
-            print(f"<details id=\"{name}\">\n")
+            print(f'<details id="{name}">\n')
             print(f"<summary><strong>{name}</strong></summary>\n\n")
             print(f"{content}\n\n")
-            print(f"</details>\n")
+            print("</details>\n")
 
 
 class HTMLFormatter(Formatter):
@@ -232,10 +234,12 @@ class HTMLFormatter(Formatter):
 
     def logs(self, logs):
         for name, content in logs.items():
-            print(f"<details id=\"{name}\">\n")
+            print(f'<details id="{name}">\n')
             print(f"<summary><strong>{name}</strong></summary>\n\n")
+            print("<pre><code>\n")
             print(f"{content}\n\n")
-            print(f"</details>\n")
+            print("</code></pre>\n")
+            print("</details>\n")
 
     def label(self, anchor, label):
         return f'<a href="#{anchor}">{label}</a>'
@@ -253,7 +257,9 @@ def get_parser():
     parser.add_argument("node", help="Ecflow node on server to print")
     parser.add_argument("--host", default=os.getenv("HOSTNAME"), help="Target host")
     parser.add_argument("--port", default=3141, help="Ecflow port")
-    parser.add_argument("-f", "--format", default="raw", help="Output format (md, html, raw)")
+    parser.add_argument(
+        "-f", "--format", default="raw", help="Output format (md, html, raw)"
+    )
     return parser
 
 
