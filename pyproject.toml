@@ -44,10 +44,11 @@ exclude = ["tests"]
     tracksuite-revert = "tracksuite.revert:main"
     tracksuite-update-defs = "tracksuite.definition:main"
     tracksuite-replace = "tracksuite.replace:main"
+    tracksuite-print = "tracksuite.print:main"
 
 [tool.setuptools_scm]
-write_to = "tracksuite/_version.py"
-write_to_template = '''
+version_file = "tracksuite/_version.py"
+version_file_template = '''
 # Do not change! Do not track in version control!
 __version__ = "{version}"
 '''
