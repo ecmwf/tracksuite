@@ -118,9 +118,10 @@ class SuiteDisplay:
             line = f"{prefix}{connector}{label}\n"
             self.tree += line
             # check if the attribute exists first, otherwise it fails for aliases
-            if hasattr(child, "nodes") and child.nodes:
-                extension = "    " if i == n_child - 1 else "│   "
-                self.extract_node_tree(child, prefix + extension)
+            if hasattr(child, "nodes"):
+                if child.nodes:
+                    extension = "    " if i == n_child - 1 else "│   "
+                    self.extract_node_tree(child, prefix + extension)
 
     def print(self):
         """
