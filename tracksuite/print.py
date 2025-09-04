@@ -117,11 +117,13 @@ class SuiteDisplay:
                 label = f"{child.name()} {state_icon}"
             line = f"{prefix}{connector}{label}\n"
             self.tree += line
-            # check if the attribute exists first, otherwise it fails for aliases
-            if hasattr(child, "nodes"):
+            try:
                 if child.nodes:
                     extension = "    " if i == n_child - 1 else "│   "
                     self.extract_node_tree(child, prefix + extension)
+            except Exception:
+                # hit in case of Alias type, but maybe others too
+                pass
 
     def print(self):
         """

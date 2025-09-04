@@ -133,7 +133,7 @@ To install tracksuite using pip (requires python, ecFlow (optional) and pip):
 
 **To print the status of the suite (useful to create small html or md summary):**
 
-    usage: print.py [-h] [--host HOST] [--port PORT] [-f FORMAT] node
+    usage: tracksuite-print [-h] [--host HOST] [--port PORT] [-f FORMAT] node
 
     Print ecFlow node tree with states
 
