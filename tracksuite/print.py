@@ -117,7 +117,8 @@ class SuiteDisplay:
                 label = f"{child.name()} {state_icon}"
             line = f"{prefix}{connector}{label}\n"
             self.tree += line
-            if child.nodes:
+            # check if the attribute exists first, otherwise it fails for aliases 
+            if hasattr(child, "nodes") and child.nodes:
                 extension = "    " if i == n_child - 1 else "│   "
                 self.extract_node_tree(child, prefix + extension)
 
