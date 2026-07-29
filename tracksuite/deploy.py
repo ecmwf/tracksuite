@@ -161,10 +161,8 @@ class GitDeployment(GitRepositories):
 
         hash_check = self.get_hash_remote("target")
         if hash_check != hash_init:
-            raise Exception(
-                "Remote repositories have changed during deployment!\n \
-                Please check the state of the remote repositories"
-            )
+            raise Exception("Remote repositories have changed during deployment!\n \
+                Please check the state of the remote repositories")
 
         self.push("target")
         if self.backup_repo:

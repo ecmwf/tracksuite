@@ -22,11 +22,12 @@ classifiers = [
 dynamic = ["version", "readme"]
 
 dependencies = [
-    "gitpython >= 3.1.25"
+    "gitpython > 3.1.53"
 ]
 
 [project.optional-dependencies]
 test = ["pytest", "mocker", "pytest-mock"]
+dev = ["tracksuite[test]", "pre-commit", "black", "isort", "flake8"]
 
 [project.urls]
 "Source code" = "https://github.com/ecmwf/tracksuite"
