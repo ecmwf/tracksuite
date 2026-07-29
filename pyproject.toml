@@ -27,6 +27,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest", "mocker", "pytest-mock"]
+dev = ["tracksuite[test]", "pre-commit", "black", "isort", "flake8"]
 
 [project.urls]
 "Source code" = "https://github.com/ecmwf/tracksuite"

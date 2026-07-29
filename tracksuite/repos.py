@@ -180,10 +180,8 @@ class GitRepositories:
     def check_state_remote(self, hash, remote):
         hash_check = self.get_hash_remote(remote)
         if hash_check != hash:
-            raise Exception(
-                "Remote repositories have changed during deployment!\n \
-                Please check the state of the remote repositories"
-            )
+            raise Exception("Remote repositories have changed during deployment!\n \
+                Please check the state of the remote repositories")
 
     def check_repos(self):
         """

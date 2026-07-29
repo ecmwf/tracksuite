@@ -64,10 +64,8 @@ def update_definition_from_server(
 
     hash_check = deployer.get_hash_remote("target")
     if hash_check != hash_init:
-        raise Exception(
-            "Remote repositories have changed during deployment!\n \
-            Please check the state of the remote repositories"
-        )
+        raise Exception("Remote repositories have changed during deployment!\n \
+            Please check the state of the remote repositories")
 
     deployer.push("target")
     if deployer.backup_repo:
