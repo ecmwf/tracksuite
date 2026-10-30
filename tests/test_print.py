@@ -58,3 +58,21 @@ def test_failed_only_keeps_aborted_logs(tasks):
     anchors = [display.process_task(task) for task in tasks]
     assert anchors[1] is None
     assert list(display.content.values()) == ["failed log\n"]
+
+
+@pytest.fixture
+def log_file(tmp_path):
+    path = tmp_path / "task.1"
+    path.write_text("".join(f"line {i}\n" for i in range(10)))
+    return path
+
+
+def test_read_log_tail(log_file):
+    content = tsprint.read_log(str(log_file), tail=3)
+    header = "[... truncated, showing last 3 of 10 lines ...]\n"
+    assert content == header + "line 7\nline 8\nline 9\n"
+
+
+@pytest.mark.parametrize("tail", [None, 10, 20])
+def test_read_log_no_truncation(log_file, tail):
+    assert tsprint.read_log(str(log_file), tail=tail) == log_file.read_text()
