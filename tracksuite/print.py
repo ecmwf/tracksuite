@@ -19,15 +19,19 @@ Functions:
     main(args=None): CLI entry point.
 
 Usage:
-    tracksuite-print <node> [--host HOST] [--port PORT] [-f FORMAT]
+    tracksuite-print <node> [--host HOST] [--port PORT] [-f FORMAT] [--failed-only]
 """
 
 import argparse
 import os
-
-import ecflow
+from typing import Any, cast
 
 from tracksuite.ecflow_client import EcflowClient
+
+try:
+    import ecflow
+except ModuleNotFoundError:
+    ecflow = cast(Any, None)
 
 
 def get_state_icon(node):
@@ -63,12 +67,14 @@ class SuiteDisplay:
 
     Args:
         format (str): Output format ('raw', 'md', or 'html').
+        failed_only (bool): Only extract job output of aborted tasks.
     """
 
-    def __init__(self, format="raw"):
+    def __init__(self, format="raw", failed_only=False):
         self.tree = ""
         self.content = {}
         self.formatter = get_formatter(format)
+        self.failed_only = failed_only
 
     def process_task(self, task):
         """
@@ -78,8 +84,10 @@ class SuiteDisplay:
             task (ecflow.Task): The task node.
 
         Returns:
-            str: Path label for the task.
+            str or None: Path label for the task, or None if its job output is skipped.
         """
+        if self.failed_only and task.get_state() != ecflow.State.aborted:
+            return None
         var = task.find_gen_variable("ECF_JOBOUT")
         jobout = getattr(var, "value")()
         if jobout and os.path.exists(jobout):
@@ -110,11 +118,11 @@ class SuiteDisplay:
         for i, child in enumerate(children):
             connector = "└── " if i == n_child - 1 else "├── "
             state_icon = get_state_icon(child)
+            label = f"{child.name()} {state_icon}"
             if isinstance(child, ecflow.Task):
                 anchor = self.process_task(child)
-                label = self.formatter.label(anchor, f"{child.name()} {state_icon}")
-            else:
-                label = f"{child.name()} {state_icon}"
+                if anchor is not None:
+                    label = self.formatter.label(anchor, label)
             line = f"{prefix}{connector}{label}\n"
             self.tree += line
             try:
@@ -130,7 +138,10 @@ class SuiteDisplay:
         Print the formatted node tree and logs using the selected formatter.
         """
         self.formatter.tree(self.tree)
-        self.formatter.logs(self.content)
+        if self.failed_only and not self.content:
+            print("No failed tasks.")
+        else:
+            self.formatter.logs(self.content)
 
 
 def get_formatter(format_type):
@@ -264,6 +275,11 @@ def get_parser():
     parser.add_argument(
         "-f", "--format", default="raw", help="Output format (md, html, raw)"
     )
+    parser.add_argument(
+        "--failed-only",
+        action="store_true",
+        help="Only print logs of aborted tasks (no effect in raw format)",
+    )
     return parser
 
 
@@ -280,7 +296,7 @@ def main(args=None):
     client = EcflowClient(args.host, args.port)
     node = client.get_node(args.node)
 
-    processor = SuiteDisplay(args.format)
+    processor = SuiteDisplay(args.format, failed_only=args.failed_only)
     processor.extract_node_tree(node)
     processor.print()
 
